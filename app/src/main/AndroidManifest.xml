@@ -22,6 +22,7 @@
         </activity>
 
         <activity android:name=".camera.camera2.Camera2Activity"/>
+        <activity android:name=".camera.camera1.Camera1Activity"/>
     </application>
 
 </manifest>

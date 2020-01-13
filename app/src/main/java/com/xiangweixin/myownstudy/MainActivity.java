@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import com.xiangweixin.myownstudy.camera.camera1.Camera1Activity;
 import com.xiangweixin.myownstudy.camera.camera2.Camera2Activity;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,6 +31,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, Camera2Activity.class));
+            }
+        });
+        findViewById(R.id.btn_toCamera1).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, Camera1Activity.class));
             }
         });
     }
