@@ -1,0 +1,52 @@
+package com.xiangweixin.myownstudy;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+
+import com.xiangweixin.myownstudy.camera.camera2.Camera2Activity;
+
+public class MainActivity extends AppCompatActivity {
+
+    // Used to load the 'native-lib' library on application startup.
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        requestAllPermission();
+        findViewById(R.id.btn_toCamera2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, Camera2Activity.class));
+            }
+        });
+    }
+
+    private void requestAllPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                finish();
+            }
+        }
+    }
+}
