@@ -27,7 +27,7 @@ import kotlin.collections.ArrayList
 private const val TAG = "Camera2Helper"
 
 /**
- * Camera2学习类
+ * Camera2学习类  https://www.jianshu.com/p/0ea5e201260f
  */
 @TargetApi(21)
 class Camera2Helper(val mActivity: Activity, private val mTextureView: TextureView) {
