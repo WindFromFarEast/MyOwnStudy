@@ -20,7 +20,7 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             native-lib.cpp )
+             native-lib.cpp egl/EglHelper.cpp native_header.cpp header/Result.h)
 
 add_library(
         avcodec-57
@@ -89,6 +89,7 @@ set_target_properties(
 )
 
 include_directories(../../../libs/include)
+include_directories(header/Result.h)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
