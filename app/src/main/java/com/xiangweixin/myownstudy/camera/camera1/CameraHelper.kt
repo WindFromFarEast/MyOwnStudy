@@ -14,6 +14,9 @@ import kotlin.math.abs
 
 private const val TAG = "CameraHelper"
 
+/**
+ * Camera1学习类
+ */
 class CameraHelper(private val mActivity: Activity, private val mSurfaceView: SurfaceView) : Camera.PreviewCallback {
 
     private var mCamera: Camera? = null

@@ -17,6 +17,9 @@ android {
                 cppFlags ""
             }
         }
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
     }
     buildTypes {
         release {
@@ -28,6 +31,11 @@ android {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
             version "3.6.0"
+        }
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
         }
     }
 }
