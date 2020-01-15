@@ -20,7 +20,7 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             native-lib.cpp egl/EglHelper.cpp native_header.cpp header/Result.h)
+             native-lib.cpp header/Result.h)
 
 add_library(
         avcodec-57
