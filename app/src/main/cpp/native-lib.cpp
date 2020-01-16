@@ -99,8 +99,8 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
         LOGE("解码 packect index: %d", packet->stream_index);
         LOGE("VIDEO INDEX: %d", video_index);
         if (packet->stream_index == video_index) {
+            avcodec_decode_video2(avCodecContext, frame, &hasFrameToDecode, packet);//decode
             LOGE("解码了一帧");
-            avcodec_decode_video2(avCodecContext, frame, &hasFrameToDecode, packet);
             if (hasFrameToDecode) {
                 LOGE("转换并绘制")
                 //绘制之前先配置NativeWindow
