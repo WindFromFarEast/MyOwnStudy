@@ -1,4 +1,4 @@
-package com.xiangweixin.myownstudy.ffmpeg;
+package com.xiangweixin.myownstudy.ffmpeg.onlyPlayVideo;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
@@ -7,19 +7,22 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-public class VideoPlayerView extends SurfaceView {
+/**
+ * 用于播放一段Video(不含Audio)的View
+ */
+public class OnlyPlayVideoView extends SurfaceView {
 
     private volatile boolean isPlay = false;
 
-    public VideoPlayerView(Context context) {
+    public OnlyPlayVideoView(Context context) {
         this(context, null);
     }
 
-    public VideoPlayerView(Context context, AttributeSet attrs) {
+    public OnlyPlayVideoView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public VideoPlayerView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public OnlyPlayVideoView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
@@ -36,7 +39,7 @@ public class VideoPlayerView extends SurfaceView {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                render(videoPath, VideoPlayerView.this.getHolder().getSurface());
+                render(videoPath, OnlyPlayVideoView.this.getHolder().getSurface());
             }
         }).start();
     }

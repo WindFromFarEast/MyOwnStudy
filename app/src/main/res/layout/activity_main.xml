@@ -20,4 +20,12 @@
         android:text="Camera1"
         app:layout_constraintStart_toEndOf="@+id/btn_toCamera2" />
 
+    <Button
+        android:id="@+id/btn_toOnlyPlayVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="OnlyPlayVideo"
+        app:layout_constraintStart_toEndOf="@+id/btn_toCamera1" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

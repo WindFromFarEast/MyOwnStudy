@@ -34,6 +34,17 @@ set_target_properties(
 )
 
 add_library(
+        postproc-54
+        SHARED
+        IMPORTED
+)
+set_target_properties(
+        postproc-54
+        PROPERTIES IMPORTED_LOCATION
+        ${lib_dir}/libpostproc-54.so
+)
+
+add_library(
         avfilter-6
         SHARED
         IMPORTED
@@ -111,6 +122,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                        native-lib
                        avcodec-57
+                        postproc-54
                        avfilter-6
                         avformat-57
                         avutil-55

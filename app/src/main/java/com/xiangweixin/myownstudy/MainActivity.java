@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import com.xiangweixin.myownstudy.camera.camera1.Camera1Activity;
 import com.xiangweixin.myownstudy.camera.camera2.Camera2Activity;
+import com.xiangweixin.myownstudy.ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("avutil-55");
         System.loadLibrary("swresample-2");
         System.loadLibrary("swscale-4");
+        System.loadLibrary("postproc-54");
     }
 
     @Override
@@ -43,6 +45,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, Camera1Activity.class));
+            }
+        });
+        findViewById(R.id.btn_toOnlyPlayVideo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, OnlyPlayVideoActivity.class));
             }
         });
     }
