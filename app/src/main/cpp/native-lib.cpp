@@ -1,20 +1,23 @@
 #include <jni.h>
 #include <string>
+#include "header/Result.h"
 
 extern "C" {
-#include "libavcodec/avcodec.h" //编码
+#include "libavcodec/avcodec.h" //编解码
 #include "libavformat/avformat.h" //封装格式处理
 #include "libswscale/swscale.h" //像素处理
 #include "android/native_window_jni.h"
 #include "android/log.h"
 #include "unistd.h"
 #include <libavutil/frame.h>
+#include "libavutil/opt.h"
+#include "libavutil/imgutils.h"
 }
 
 #define LOGE(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR,"LC",FORMAT,##__VA_ARGS__);
 
 /**
- * 一个完整的视频解封装->解码->显示到Surface上的流程
+ * 一个完整的视频解封装->解码->显示到Surface上的流程 (yuv420)
  */
 extern "C"
 JNIEXPORT void JNICALL
@@ -77,7 +80,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     AVFrame *rgbFrame = av_frame_alloc();//保存转换成rgb后的帧
 
     //为AVFrame分配内部缓冲空间
-    uint8_t *out_buffer = (uint8_t *)av_malloc(avpicture_get_size(AV_PIX_FMT_RGBA, avCodecContext->width, avCodecContext->height) *
+    uint8_t *out_buffer = (uint8_t *) av_malloc(avpicture_get_size(AV_PIX_FMT_RGBA, avCodecContext->width, avCodecContext->height) *
                                                        sizeof(uint8_t));
     avpicture_fill((AVPicture *)rgbFrame, out_buffer, AV_PIX_FMT_RGBA, avCodecContext->width,avCodecContext->height);
 
@@ -135,4 +138,82 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     avcodec_close(avCodecContext);
     avformat_close_input(&avFormatContext);
     env->ReleaseStringUTFChars(videoPath_, videoPath);
+}
+
+/**
+ * h264编码流程 yuv420p->h264
+ */
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpegEncode_nativeEncode(JNIEnv *env, jclass clazz,
+                                                                        jstring yuv_path,
+                                                                        jstring h264_out_path,
+                                                                        jint bitrate, jint frameRate, jint width, jint height) {
+    const char *yuvPath = env->GetStringUTFChars(yuv_path, nullptr);
+    const char *h264OutPath = env->GetStringUTFChars(h264_out_path, nullptr);
+
+    FILE *in_file = fopen(yuvPath, "rb");
+    if (in_file == nullptr) {
+        return FILE_NOT_EXIST;
+    }
+
+    av_register_all();
+
+    //初始化AVFormatContext和AVOutputFormat
+    AVFormatContext *formatContext;
+    AVOutputFormat *outputFormat;
+    formatContext = avformat_alloc_context();
+    outputFormat = av_guess_format(nullptr, h264OutPath, nullptr); //AVOutputFormat从输出文件中guess出来
+    formatContext->oformat = outputFormat;
+
+    if (avio_open(&formatContext->pb, h264OutPath, AVIO_FLAG_READ_WRITE) < 0) {
+        return FILE_NOT_EXIST;
+    }
+    AVStream *stream = avformat_new_stream(formatContext, nullptr);
+    //获取AVCodecContext并设置编码器参数
+    AVCodecContext *codecContext = stream->codec;
+    codecContext->codec_id = outputFormat->video_codec;
+    codecContext->codec_type = AVMEDIA_TYPE_VIDEO;
+    codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+    codecContext->width = width;
+    codecContext->height = height;
+    codecContext->bit_rate = bitrate;
+    codecContext->gop_size = 10;
+    codecContext->framerate = (AVRational) {frameRate, 1};
+    codecContext->time_base = (AVRational) {1, frameRate}; //时间基: 一分钟frameRate帧
+    codecContext->max_b_frames = 1;
+    codecContext->qmin = 10;
+    codecContext->qmax = 51;
+
+    AVDictionary *dictionary = nullptr;
+    if (codecContext->codec_id == AV_CODEC_ID_H264) {
+        av_dict_set(&dictionary, "preset", "slow", 0);
+        av_dict_set(&dictionary, "tune", "zerolatency", 0);
+    }
+
+    av_dump_format(formatContext, 0, h264OutPath, 1);
+
+    //查找并打开编码器
+    AVCodec *codec = nullptr;
+    codec = avcodec_find_encoder(codecContext->codec_id);
+    if (avcodec_open2(codecContext, codec, &dictionary) < 0) {
+        return CODEC_OPEN_FAILED;
+    }
+
+    AVFrame *frame;
+    uint8_t *picture_buf;
+    int picture_size;
+    frame = av_frame_alloc();
+    picture_size = avpicture_get_size(codecContext->pix_fmt, codecContext->width, codecContext->height);
+    picture_buf = static_cast<uint8_t *>(av_malloc(picture_size));
+    avpicture_fill((AVPicture *)frame, picture_buf, codecContext->pix_fmt, codecContext->width, codecContext->height);
+
+    avformat_write_header(formatContext, nullptr);
+
+    AVPacket *packet;
+    av_new_packet(packet, picture_size);//todo
+
+    env->ReleaseStringUTFChars(yuv_path, yuvPath);
+    env->ReleaseStringUTFChars(h264_out_path, h264OutPath);
+    return SUCCESS;
 }
