@@ -53,6 +53,12 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, OnlyPlayVideoActivity.class));
             }
         });
+        findViewById(R.id.btn_toUtil).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, UtilActivity.class));
+            }
+        });
     }
 
     private void requestAllPermission() {

@@ -1,6 +1,10 @@
 #include <jni.h>
 #include <string>
+#include <FFMpegMusic.h>
 #include "header/Result.h"
+#include "SLES/OpenSLES.h"
+#include "SLES/OpenSLES_Android.h"
+#include "pthread.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h" //编解码
@@ -274,3 +278,161 @@ Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpegEncode_nativeEncode(JNIEnv *
     env->ReleaseStringUTFChars(h264_out_path, h264OutPath);
     return SUCCESS;
 }
+
+//-----------------------------------------OpenSL ES-----------------------------------------//
+
+SLObjectItf engineObject = nullptr;//引擎接口对象
+SLEngineItf engineEngine = nullptr;//具体的引擎对象实例
+
+SLObjectItf  outputMixObject = nullptr;
+SLEnvironmentalReverbItf outputMixEnvironmentalReverb = nullptr;//混音器对象实例
+SLEnvironmentalReverbSettings settings = SL_I3DL2_ENVIRONMENT_PRESET_DEFAULT;
+
+SLObjectItf audioPlayer = nullptr;
+SLPlayItf slPlayItf = nullptr;
+SLAndroidSimpleBufferQueueItf slBufferQueueItf = nullptr;
+
+//创建引擎
+void createEngine() {
+    //1、创建并实现SLObjectItf
+    slCreateEngine(&engineObject, 0, nullptr, 0, nullptr, nullptr);
+    (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
+    //2、通过SLObjectItf获取SLEngineItf
+    (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
+}
+
+//创建混音器
+void createMixVolume() {
+    (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 0, 0, 0);
+    (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
+    SLresult result = (*outputMixObject)->GetInterface(outputMixObject, SL_IID_ENVIRONMENTALREVERB, &outputMixEnvironmentalReverb);
+    if (result == SL_RESULT_SUCCESS) {
+        (*outputMixEnvironmentalReverb)->SetEnvironmentalReverbProperties(outputMixEnvironmentalReverb, &settings);
+    }
+}
+
+size_t bufferSize = 0;
+void *buffer;
+
+//回调的函数
+void getQueueCallback(SLAndroidSimpleBufferQueueItf slBufferQueueItf, void *context) {
+    bufferSize = 0;
+    getPCM(&buffer, &bufferSize);
+    if (buffer != nullptr & bufferSize > 0) {
+        //将得到的PCM数据加入队列中
+        (*slBufferQueueItf)->Enqueue(slBufferQueueItf, buffer, bufferSize);
+    }
+}
+
+//创建播放器并播放
+void createPlayer(const char *music) {
+    int rate;
+    int channels;
+    createFFmpeg(music, &rate, &channels);
+    /**
+     * struct SLDataLocator_AndroidBufferQueue_ {
+     *   SLuint32    locatorType;//缓冲区队列类型
+     *   SLuint32    numBuffers;//buffer位数
+     * }
+     */
+    SLDataLocator_AndroidBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+    /**
+    typedef struct SLDataFormat_PCM_ {
+        SLuint32        formatType;  pcm
+        SLuint32        numChannels;  通道数
+        SLuint32        samplesPerSec;  采样率
+        SLuint32        bitsPerSample;  采样位数
+        SLuint32        containerSize;  包含位数
+        SLuint32        channelMask;     立体声
+        SLuint32        endianness;    end标志位
+    } SLDataFormat_PCM;
+    */
+    SLDataFormat_PCM pcm = {
+            SL_DATAFORMAT_PCM, static_cast<SLuint32>(channels), static_cast<SLuint32>(rate * 1000),
+            SL_PCMSAMPLEFORMAT_FIXED_16,
+            SL_PCMSAMPLEFORMAT_FIXED_16,
+            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, SL_BYTEORDER_LITTLEENDIAN
+    };
+    /**
+    * typedef struct SLDataSource_ {
+        void *pLocator;//缓冲区队列
+        void *pFormat;//数据样式,配置信息
+    } SLDataSource;
+    * */
+    SLDataSource dataSource = {&android_queue, &pcm};
+
+    SLDataLocator_OutputMix slDataLocator_outputMix = {
+            SL_DATALOCATOR_OUTPUTMIX, outputMixObject
+    };
+
+    SLDataSink slDataSink = {
+            &slDataLocator_outputMix, NULL
+    };
+
+    const SLInterfaceID ids[3]={
+            SL_IID_BUFFERQUEUE, SL_IID_EFFECTSEND,SL_IID_VOLUME
+    };
+    const SLboolean req[3]={
+            SL_BOOLEAN_FALSE, SL_BOOLEAN_FALSE, SL_BOOLEAN_FALSE
+    };
+
+    (*engineEngine)->CreateAudioPlayer(engineEngine, &audioPlayer, &dataSource, &slDataSink, 3, ids, req);
+    LOGE("CreateAudioPlayer done")
+    (*audioPlayer)->Realize(audioPlayer, SL_BOOLEAN_FALSE);
+    LOGE("audio player Realize done")
+    (*audioPlayer)->GetInterface(audioPlayer, SL_IID_PLAY, &slPlayItf);
+    LOGE("GetInterface(audioPlayer, SL_IID_PLAY, &slPlayItf) done")
+    (*audioPlayer)->GetInterface(audioPlayer, SL_IID_BUFFERQUEUE, &slBufferQueueItf);//注册缓冲区 通过缓冲区里面的数据进行播放
+    LOGE("GetInterface(audioPlayer, SL_IID_BUFFERQUEUE, &slBufferQueueItf) done")
+    (*slBufferQueueItf)->RegisterCallback(slBufferQueueItf, getQueueCallback, nullptr);
+    LOGE("RegisterCallback done")
+    //播放
+    (*slPlayItf)->SetPlayState(slPlayItf, SL_PLAYSTATE_PLAYING);
+    LOGE("SetPlayState done")
+    //开始播放
+    getQueueCallback(slBufferQueueItf, nullptr);
+    LOGE("getQueueCallback done")
+}
+
+/**
+ * 播放PCM
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_xiangweixin_myownstudy_opensl_OpenSLStudyOne_nativePlayMusic(JNIEnv *env, jclass clazz,
+                                                                    jstring path) {
+    const char *music = env->GetStringUTFChars(path, nullptr);
+    createEngine();
+    createMixVolume();
+    createPlayer(music);
+    env->ReleaseStringUTFChars(path, music);
+
+}
+
+//-----------------------------------------OpenSL ES-----------------------------------------//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

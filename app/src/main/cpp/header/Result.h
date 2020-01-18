@@ -14,5 +14,7 @@ typedef int Result;
 #define FILE_NOT_EXIST -3
 #define ENCODE_FAILED -4
 #define FLUSH_ENCODE_FAILED -5
+#define FIND_INFO_FAILED -6
+#define NO_MUSIC_STREAM -7
 
 #endif //MYOWNSTUDY_RESULT_H

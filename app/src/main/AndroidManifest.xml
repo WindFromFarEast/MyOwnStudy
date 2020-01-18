@@ -24,6 +24,7 @@
         <activity android:name=".camera.camera2.Camera2Activity"/>
         <activity android:name=".camera.camera1.Camera1Activity"/>
         <activity android:name=".ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity"/>
+        <activity android:name=".UtilActivity"/>
     </application>
 
 </manifest>
