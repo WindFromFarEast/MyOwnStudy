@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 set(lib_dir ${CMAKE_SOURCE_DIR}/../../../libs/armeabi-v7a)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+add_compile_options(-Wall)
 
 add_library( # Sets the name of the library.
              native-lib

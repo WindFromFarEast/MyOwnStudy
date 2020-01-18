@@ -31,16 +31,20 @@ int createFFmpeg(const char *music, int *rate, int *channel) {
     }
     //找到音频流
     for (int i = 0; i < pFormatCtx->nb_streams; ++i) {
-        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+        if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             audio_stream_idx = i;
+            //获取音频解码器 new way
+            pCodec = avcodec_find_decoder(pFormatCtx->streams[audio_stream_idx]->codecpar->codec_id);
+            pCodecCtx = avcodec_alloc_context3(pCodec);
+            avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[audio_stream_idx]->codecpar);//AVCodecParameter包含了大量的解码器信息，这里直接复制到AVCodecContext
             break;
         } else if (i == pFormatCtx->nb_streams - 1) {
             return NO_MUSIC_STREAM;
         }
     }
-    //获取音频解码器
-    pCodecCtx = pFormatCtx->streams[audio_stream_idx]->codec;
-    pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+    //获取音频解码器 old way
+//    pCodecCtx = pFormatCtx->streams[audio_stream_idx]->codecpar;
+//    pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
     //打开音频解码器
     if (avcodec_open2(pCodecCtx, pCodec, nullptr) < 0) {
         return CODEC_OPEN_FAILED;
@@ -68,12 +72,11 @@ int createFFmpeg(const char *music, int *rate, int *channel) {
 }
 
 int getPCM(void **pcm, size_t *pcm_size) {
-    int frameCount = 0;
     int got_frame;
     while (av_read_frame(pFormatCtx, packet) >= 0) {//从文件中获取编码数据到Packet
         if (packet->stream_index == audio_stream_idx) {
             //解码
-            avcodec_decode_audio4(pCodecCtx, frame, &got_frame, packet);
+            avcodec_decode_audio4(pCodecCtx, frame, &got_frame, packet);//old way
             LOGE("decode one frame");
             if (got_frame) {
                 swr_convert(swrContext, &out_buffer, 44100 * 2, (const uint8_t **) frame->data, frame->nb_samples);
@@ -84,12 +87,14 @@ int getPCM(void **pcm, size_t *pcm_size) {
             }
         }
     }
+    return 0;
 }
 
 void releaseFFmpeg() {
     av_free(out_buffer);
     av_frame_free(&frame);
     swr_free(&swrContext);
-    avcodec_close(pCodecCtx);
+//    avcodec_close(pCodecCtx); old way
+    avcodec_free_context(&pCodecCtx);//new way
     avformat_close_input(&pFormatCtx);
 }
