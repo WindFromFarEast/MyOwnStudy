@@ -165,10 +165,11 @@ Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpegEncode_nativeEncode(JNIEnv *
     formatContext = avformat_alloc_context();
     outputFormat = av_guess_format(nullptr, h264OutPath, nullptr); //AVOutputFormat从输出文件中guess出来
     formatContext->oformat = outputFormat;
-
+    //初始化AVIOContext
     if (avio_open(&formatContext->pb, h264OutPath, AVIO_FLAG_READ_WRITE) < 0) {
         return FILE_NOT_EXIST;
     }
+    //初始化AVStream
     AVStream *stream = avformat_new_stream(formatContext, nullptr);
     //获取AVCodecContext并设置编码器参数
     AVCodecContext *codecContext = stream->codec;
@@ -205,13 +206,69 @@ Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpegEncode_nativeEncode(JNIEnv *
     int picture_size;
     frame = av_frame_alloc();
     picture_size = avpicture_get_size(codecContext->pix_fmt, codecContext->width, codecContext->height);
-    picture_buf = static_cast<uint8_t *>(av_malloc(picture_size));
+    picture_buf = static_cast<uint8_t *>(av_malloc(picture_size  * sizeof(uint8_t)));
     avpicture_fill((AVPicture *)frame, picture_buf, codecContext->pix_fmt, codecContext->width, codecContext->height);
 
     avformat_write_header(formatContext, nullptr);
 
     AVPacket *packet;
-    av_new_packet(packet, picture_size);//todo
+    av_new_packet(packet, picture_size);
+
+    int y_size = codecContext->width * codecContext->height;
+    int readCount = 0;
+    int encodedFrameCount = 0;
+    while (fread(picture_buf, 1, y_size * 3 / 2, in_file) > 0) {
+        frame->data[0] = picture_buf; //y
+        frame->data[1] = picture_buf + y_size; //u
+        frame->data[2] = picture_buf + y_size * 5 / 4; //v
+        //处理pts
+        frame->pts = readCount * (1000 / codecContext->framerate.num);
+        int got_picture = 0;
+        //编码
+        int ret = avcodec_encode_video2(codecContext, packet, frame, &got_picture);
+        if (ret < 0) {
+            return ENCODE_FAILED;
+        }
+        if (got_picture == 1) {
+            encodedFrameCount++;
+            packet->stream_index = stream->index;
+            av_write_frame(formatContext, packet);
+            av_free_packet(packet);
+        }
+    }
+
+    //flush encode. 将编码器中剩余的packet输出
+    AVPacket enc_pkt;
+    if (!(formatContext->streams[0]->codec->codec->capabilities & CODEC_CAP_DELAY)) {
+        return FLUSH_ENCODE_FAILED;
+    }
+    while (1) {
+        enc_pkt.data = nullptr;
+        enc_pkt.size = 0;
+        av_init_packet(&enc_pkt);//因为av_init_packet不会初始化data和size 故data和size需要手动设置
+
+        int got_frame;
+        int ret = avcodec_encode_video2(codecContext, &enc_pkt, nullptr, &got_frame);
+        av_frame_free(nullptr);
+        if (ret < 0) break;
+        if (!got_frame) {
+            ret = 0;
+            break;
+        }
+        ret = av_write_frame(formatContext, &enc_pkt);
+        if (ret < 0) break;
+    }
+
+    av_write_trailer(formatContext);
+
+    //clean
+    if (stream) {
+        avcodec_close(stream->codec);
+        av_free(frame);
+        av_free(picture_buf);
+    }
+    avio_close(formatContext->pb);
+    avformat_free_context(formatContext);
 
     env->ReleaseStringUTFChars(yuv_path, yuvPath);
     env->ReleaseStringUTFChars(h264_out_path, h264OutPath);

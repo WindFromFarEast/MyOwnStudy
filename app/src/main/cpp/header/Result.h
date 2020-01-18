@@ -12,5 +12,7 @@ typedef int Result;
 #define EGL_NO_DISPLAY_ERROR -1
 #define CODEC_OPEN_FAILED -2
 #define FILE_NOT_EXIST -3
+#define ENCODE_FAILED -4
+#define FLUSH_ENCODE_FAILED -5
 
 #endif //MYOWNSTUDY_RESULT_H
