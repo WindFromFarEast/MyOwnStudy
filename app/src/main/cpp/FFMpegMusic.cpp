@@ -76,9 +76,17 @@ int getPCM(void **pcm, size_t *pcm_size) {
     while (av_read_frame(pFormatCtx, packet) >= 0) {//从文件中获取编码数据到Packet
         if (packet->stream_index == audio_stream_idx) {
             //解码
-            avcodec_decode_audio4(pCodecCtx, frame, &got_frame, packet);//old way
+//            avcodec_decode_audio4(pCodecCtx, frame, &got_frame, packet);//old way
+            int codecRet = avcodec_send_packet(pCodecCtx, packet);
+            if (codecRet < 0 && codecRet != AVERROR(EAGAIN) && codecRet != AVERROR_EOF) {
+                return DECODE_FAILED;
+            }
+            codecRet = avcodec_receive_frame(pCodecCtx, frame);
+            if (codecRet < 0 && codecRet != AVERROR_EOF) {
+                return DECODE_FAILED;
+            }
             LOGE("decode one frame");
-            if (got_frame) {
+            if (codecRet == 0) {
                 swr_convert(swrContext, &out_buffer, 44100 * 2, (const uint8_t **) frame->data, frame->nb_samples);
                 int size = av_samples_get_buffer_size(nullptr, out_channel_nb, frame->nb_samples, AV_SAMPLE_FMT_S16, 1);
                 *pcm = out_buffer;

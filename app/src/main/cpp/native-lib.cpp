@@ -317,7 +317,11 @@ void *buffer;
 //回调的函数
 void getQueueCallback(SLAndroidSimpleBufferQueueItf slBufferQueueItf, void *context) {
     bufferSize = 0;
-    getPCM(&buffer, &bufferSize);
+    int ret = getPCM(&buffer, &bufferSize);
+    if (ret != 0) {
+        LOGE("解码失败");
+        return;
+    }
     if (buffer != nullptr & bufferSize > 0) {
         //将得到的PCM数据加入队列中
         (*slBufferQueueItf)->Enqueue(slBufferQueueItf, buffer, bufferSize);

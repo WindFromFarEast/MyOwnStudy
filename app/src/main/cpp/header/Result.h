@@ -16,5 +16,6 @@ typedef int Result;
 #define FLUSH_ENCODE_FAILED -5
 #define FIND_INFO_FAILED -6
 #define NO_MUSIC_STREAM -7
+#define DECODE_FAILED -8
 
 #endif //MYOWNSTUDY_RESULT_H
