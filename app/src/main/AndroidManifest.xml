@@ -4,6 +4,7 @@
     package="com.xiangweixin.myownstudy">
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
         android:allowBackup="true"
@@ -25,6 +26,7 @@
         <activity android:name=".camera.camera1.Camera1Activity"/>
         <activity android:name=".ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity"/>
         <activity android:name=".UtilActivity"/>
+        <activity android:name=".audiorecord.AudioRecordActivity"/>
     </application>
 
 </manifest>

@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import com.xiangweixin.myownstudy.audiorecord.AudioRecordActivity;
 import com.xiangweixin.myownstudy.camera.camera1.Camera1Activity;
 import com.xiangweixin.myownstudy.camera.camera2.Camera2Activity;
 import com.xiangweixin.myownstudy.ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity;
@@ -57,6 +58,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, UtilActivity.class));
+            }
+        });
+        findViewById(R.id.btn_toAudioRecord).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, AudioRecordActivity.class));
             }
         });
     }

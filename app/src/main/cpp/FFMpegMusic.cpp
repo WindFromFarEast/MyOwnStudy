@@ -53,7 +53,7 @@ int createFFmpeg(const char *music, int *rate, int *channel) {
     packet = (AVPacket *) av_malloc(sizeof(AVPacket));
     frame = av_frame_alloc();
 //    av_init_packet(packet);
-    //重采样
+    //重采样 原因是ffmpeg解码mp4出来的采样格式为AV_SAMPLE_FMT_S16P
     swrContext = swr_alloc();
     int length = 0;
     int got_frame;
