@@ -55,8 +55,6 @@ int createFFmpeg(const char *music, int *rate, int *channel) {
 //    av_init_packet(packet);
     //重采样 原因是ffmpeg解码mp4出来的采样格式为AV_SAMPLE_FMT_S16P
     swrContext = swr_alloc();
-    int length = 0;
-    int got_frame;
     out_buffer = (uint8_t *) av_malloc(44100 * 2);
     uint64_t out_ch_layout = AV_CH_LAYOUT_STEREO;//输出的声道布局(立体声)
     AVSampleFormat out_format = AV_SAMPLE_FMT_S16;//输出采样位数 16位
@@ -100,6 +98,7 @@ int getPCM(void **pcm, size_t *pcm_size) {
 
 void releaseFFmpeg() {
     av_free(out_buffer);
+    av_free(packet);
     av_frame_free(&frame);
     swr_free(&swrContext);
 //    avcodec_close(pCodecCtx); old way

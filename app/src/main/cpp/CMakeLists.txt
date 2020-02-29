@@ -20,7 +20,15 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             native-lib.cpp FFMpegMusic.cpp)
+             native-lib.cpp FFMpegMusic.cpp FFmpegVideo.cpp)
+
+add_library(
+        sync
+
+        SHARED
+
+        sync.cpp
+)
 
 add_library(
         avcodec-57
@@ -121,6 +129,7 @@ find_library( # Sets the name of the path variable.
 
 target_link_libraries( # Specifies the target library.
                        native-lib
+                        sync
                        avcodec-57
                         postproc-54
                        avfilter-6
