@@ -31,6 +31,12 @@ add_library(
 )
 
 add_library(
+        recorderJni
+        SHARED
+        media/recorderJni.cpp media/RecorderOpenGLProxy.cpp
+)
+
+add_library(
         avcodec-57
         SHARED
         IMPORTED
@@ -130,6 +136,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
                        native-lib
                         sync
+                        recorderJni
                        avcodec-57
                         postproc-54
                        avfilter-6
