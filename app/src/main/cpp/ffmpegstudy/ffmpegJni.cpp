@@ -59,7 +59,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpeg_nativeEncode(JNIEnv *env, j
 
     LOGD(TAG, "nativeEncode start... yuvPath: %s, h264Path: %s", yuv, h264);
 
-    FILE *in_file = fopen("sdcard/toBeEncoded.yuv", "rb");
+    FILE *in_file = fopen(yuv, "rb");
     int frameNum = 100;//编码100帧
 
     AVFormatContext *formatContext;
