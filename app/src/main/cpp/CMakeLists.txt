@@ -37,6 +37,12 @@ add_library(
 )
 
 add_library(
+        ffmpegJni
+        SHARED
+        ffmpegstudy/ffmpegJni.cpp
+)
+
+add_library(
         avcodec-57
         SHARED
         IMPORTED
