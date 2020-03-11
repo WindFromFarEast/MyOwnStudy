@@ -24,7 +24,6 @@ extern "C" {
 #include <android/native_window_jni.h>
 #include <unistd.h>
 }
-#define LOGE(FORMAT,...) __android_log_print(ANDROID_LOG_ERROR,"LC",FORMAT,##__VA_ARGS__);
 
 int createFFmpeg(const char* music, int *rate, int *channel);
 int getPCM(void **pcm, size_t *pcm_size);

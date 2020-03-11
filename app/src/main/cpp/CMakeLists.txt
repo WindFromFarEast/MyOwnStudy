@@ -20,27 +20,7 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
-             native-lib.cpp FFMpegMusic.cpp FFmpegVideo.cpp)
-
-add_library(
-        sync
-
-        SHARED
-
-        sync.cpp
-)
-
-add_library(
-        recorderJni
-        SHARED
-        media/recorderJni.cpp media/RecorderOpenGLProxy.cpp
-)
-
-add_library(
-        ffmpegJni
-        SHARED
-        ffmpegstudy/ffmpegJni.cpp
-)
+             native-lib.cpp FFMpegMusic.cpp FFmpegVideo.cpp media/RecorderOpenGLProxy.cpp media/GLUtils.cpp)
 
 add_library(
         avcodec-57
@@ -141,8 +121,6 @@ find_library( # Sets the name of the path variable.
 
 target_link_libraries( # Specifies the target library.
                        native-lib
-                        sync
-                        recorderJni
                        avcodec-57
                         postproc-54
                        avfilter-6

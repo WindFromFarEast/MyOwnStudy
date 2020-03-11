@@ -5,7 +5,8 @@
 #ifndef MYOWNSTUDY_RESULT_H
 #define MYOWNSTUDY_RESULT_H
 
-typedef int Result;
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, __VA_ARGS__)
 
 #define SUCCESS 0
 
@@ -21,6 +22,9 @@ typedef int Result;
 #define RECORDER_INVALID_HANDLER -9;
 #define RECORDER_INVALID_SURFACE -10;
 #define RECORDER_SWAPBUFFERS_ERROR -11;
+#define RECORDER_LOAD_SHADER_FAILED -12;
+#define RECORDER_GL_COMPILE_FAILED -13;
+#define RECORDER_CREATE_PROGRAME_FAILED -14;
 
 #define FFMPEG_AVIO_OPEN_FAILED -1000;
 #define FFMPEG_NEW_STREAM_FAILED -1001;

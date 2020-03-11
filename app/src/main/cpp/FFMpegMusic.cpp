@@ -14,16 +14,18 @@ uint8_t *out_buffer;
 int out_channel_nb;
 int audio_stream_idx = -1;
 
+#define TAG "FFmpegMusic"
+
 int createFFmpeg(const char *music, int *rate, int *channel) {
     av_register_all();
     pFormatCtx = avformat_alloc_context();
-    LOGE("music path: %s", music);
+    LOGE(TAG, "music path: %s", music);
     int error;
     char buf[] = "";
     //解封装
     if ((error = avformat_open_input(&pFormatCtx, music, nullptr, nullptr)) < 0) {
         av_strerror(error, buf, 1024);
-        LOGE("Cannot open file: %s", music)
+        LOGE(TAG,"Cannot open file: %s", music);
     }
     //获取文件的流信息
     if (avformat_find_stream_info(pFormatCtx, nullptr) < 0) {
@@ -83,7 +85,7 @@ int getPCM(void **pcm, size_t *pcm_size) {
             if (codecRet < 0 && codecRet != AVERROR_EOF) {
                 return DECODE_FAILED;
             }
-            LOGE("decode one frame");
+            LOGE(TAG,"decode one frame");
             if (codecRet == 0) {
                 swr_convert(swrContext, &out_buffer, 44100 * 2, (const uint8_t **) frame->data, frame->nb_samples);
                 int size = av_samples_get_buffer_size(nullptr, out_channel_nb, frame->nb_samples, AV_SAMPLE_FMT_S16, 1);

@@ -29,6 +29,9 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("swresample-2");
         System.loadLibrary("swscale-4");
         System.loadLibrary("postproc-54");
+        System.loadLibrary("recorderJni");
+        System.loadLibrary("sync");
+        System.loadLibrary("ffmpegJni");
     }
 
     @Override

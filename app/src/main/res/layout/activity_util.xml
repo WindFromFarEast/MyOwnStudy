@@ -10,4 +10,16 @@
         android:layout_height="wrap_content"
         android:text="Play Music"/>
 
+    <EditText
+        android:id="@+id/et_encode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="输入要编码的yuv文件路径"/>
+
+    <Button
+        android:id="@+id/btn_encodeToH264"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="编码"/>
+
 </LinearLayout>

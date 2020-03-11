@@ -5,6 +5,8 @@
 #include "SLES/OpenSLES.h"
 #include "SLES/OpenSLES_Android.h"
 #include "pthread.h"
+#include "RecorderOpenGLProxy.h"
+#include "GLES2/gl2.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h" //编解码
@@ -18,7 +20,7 @@ extern "C" {
 #include "libavutil/imgutils.h"
 }
 
-#define LOGE(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR,"LC",FORMAT,##__VA_ARGS__);
+#define TAG "LOG"
 
 /**
  * 一个完整的视频解封装->解码->显示到Surface上的流程 (yuv420)
@@ -32,7 +34,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
 
     //注册ffmpeg各个组件
     av_register_all();
-    LOGE("注册成功");
+    LOGE(TAG, "注册成功");
 
     AVFormatContext *avFormatContext = nullptr;
     int error;
@@ -41,11 +43,11 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     //解封装(格式处理) 获取信息
     if ((error = avformat_open_input(&avFormatContext, videoPath, nullptr, nullptr)) < 0) { //解封装
         av_strerror(error, buf, 1024);
-        LOGE("Couldn't open file %s: %d(%s)", videoPath, error, buf);
+        LOGE(TAG, "Couldn't open file %s: %d(%s)", videoPath, error, buf);
         return;
     }
     if (avformat_find_stream_info(avFormatContext, nullptr) < 0) { //获取音频流/视频流的详细数据
-        LOGE("获取文件内容失败");
+        LOGE(TAG, "获取文件内容失败");
         return;
     }
 
@@ -58,7 +60,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
         }
     }
     if (video_index == -1) {
-        LOGE("没有视频流");
+        LOGE(TAG, "没有视频流");
         return;
     }
 
@@ -69,7 +71,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     AVCodec *avCodec = avcodec_find_decoder(avCodecContext->codec_id);
     //打开解码器
     if (avcodec_open2(avCodecContext, avCodec, nullptr) < 0) {
-        LOGE("解码器打开失败");
+        LOGE(TAG, "解码器打开失败");
         return;
     }
     //申请AVPacket AVPacket的作用是保存解码之前的数据和一些附加信息，如显示时间戳（pts）、解码时间戳（dts）、数据时长，所在媒体流的索引等
@@ -95,7 +97,7 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     //用Surface创建解码后要显示数据的Window
     ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, outputSurface);
     if (nativeWindow == nullptr) {
-        LOGE("NativeWindow 获取失败");
+        LOGE(TAG, "NativeWindow 获取失败");
         return;
     }
     //NativeWindow图像显示数据的缓冲区
@@ -103,13 +105,13 @@ Java_com_xiangweixin_myownstudy_ffmpeg_onlyPlayVideo_OnlyPlayVideoView_render(JN
     int hasFrameToDecode;//是否还有帧可以被解码
     //开始解码  av_read_frame 对应 av_free_packet
     while (av_read_frame(avFormatContext, packet) >= 0) {
-        LOGE("解码 packect index: %d", packet->stream_index);
-        LOGE("VIDEO INDEX: %d", video_index);
+        LOGE(TAG, "解码 packect index: %d", packet->stream_index);
+        LOGE(TAG, "VIDEO INDEX: %d", video_index);
         if (packet->stream_index == video_index) {
             avcodec_decode_video2(avCodecContext, frame, &hasFrameToDecode, packet);//decode
-            LOGE("解码了一帧");
+            LOGE(TAG, "解码了一帧");
             if (hasFrameToDecode) {
-                LOGE("转换并绘制")
+                LOGE(TAG, "转换并绘制");
                 //绘制之前先配置NativeWindow
                 ANativeWindow_setBuffersGeometry(nativeWindow, avCodecContext->width, avCodecContext->height, WINDOW_FORMAT_RGBA_8888);
                 //上锁
@@ -319,7 +321,7 @@ void getQueueCallback(SLAndroidSimpleBufferQueueItf slBufferQueueItf, void *cont
     bufferSize = 0;
     int ret = getPCM(&buffer, &bufferSize);
     if (ret != 0) {
-        LOGE("解码失败");
+        LOGE(TAG, "解码失败");
         return;
     }
     if (buffer != nullptr & bufferSize > 0) {
@@ -381,21 +383,21 @@ void createPlayer(const char *music) {
     };
 
     (*engineEngine)->CreateAudioPlayer(engineEngine, &audioPlayer, &dataSource, &slDataSink, 3, ids, req);
-    LOGE("CreateAudioPlayer done")
+    LOGE(TAG, "CreateAudioPlayer done");
     (*audioPlayer)->Realize(audioPlayer, SL_BOOLEAN_FALSE);
-    LOGE("audio player Realize done")
+    LOGE(TAG, "audio player Realize done");
     (*audioPlayer)->GetInterface(audioPlayer, SL_IID_PLAY, &slPlayItf);
-    LOGE("GetInterface(audioPlayer, SL_IID_PLAY, &slPlayItf) done")
+    LOGE(TAG, "GetInterface(audioPlayer, SL_IID_PLAY, &slPlayItf) done");
     (*audioPlayer)->GetInterface(audioPlayer, SL_IID_BUFFERQUEUE, &slBufferQueueItf);//注册缓冲区 通过缓冲区里面的数据进行播放
-    LOGE("GetInterface(audioPlayer, SL_IID_BUFFERQUEUE, &slBufferQueueItf) done")
+    LOGE(TAG, "GetInterface(audioPlayer, SL_IID_BUFFERQUEUE, &slBufferQueueItf) done");
     (*slBufferQueueItf)->RegisterCallback(slBufferQueueItf, getQueueCallback, nullptr);
-    LOGE("RegisterCallback done")
+    LOGE(TAG, "RegisterCallback done");
     //播放
     (*slPlayItf)->SetPlayState(slPlayItf, SL_PLAYSTATE_PLAYING);
-    LOGE("SetPlayState done")
+    LOGE(TAG, "SetPlayState done");
     //开始播放
     getQueueCallback(slBufferQueueItf, nullptr);
-    LOGE("getQueueCallback done")
+    LOGE(TAG, "getQueueCallback done");
 }
 
 /**
@@ -416,6 +418,302 @@ Java_com_xiangweixin_myownstudy_opensl_OpenSLStudyOne_nativePlayMusic(JNIEnv *en
 //-----------------------------------------OpenSL ES-----------------------------------------//
 
 
+//-----------------------------------------FFmpeg Encode-----------------------------------------//
+
+int flush_encoder(AVFormatContext *formatContext, unsigned int stream_index) {
+    int ret;
+    int got_frame;
+    AVPacket enc_pkt;
+    if (!(formatContext->streams[stream_index]->codec->codec->capabilities & CODEC_CAP_DELAY)) {
+        return 0;
+    }
+    while (1) {
+        enc_pkt.data = nullptr;
+        enc_pkt.size = 0;
+        av_init_packet(&enc_pkt);
+        ret = avcodec_encode_video2(formatContext->streams[stream_index]->codec, &enc_pkt, nullptr, &got_frame);
+        av_frame_free(nullptr);
+        if (ret < 0) break;
+        if (!got_frame) {
+            ret = 0;
+            break;
+        }
+        LOGD(TAG, "Flush Encoder: Succeed to encode 1 frame!\tsize:%5d\n",enc_pkt.size);
+        ret = av_write_frame(formatContext, &enc_pkt);
+        if (ret < 0) break;
+    }
+    return ret;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_xiangweixin_myownstudy_ffmpeg_encode_FFmpeg_nativeEncode(JNIEnv *env, jclass type,
+                                                                  jstring yuv_, jstring h264_,
+                                                                  jint bitrate, jint frameRate,
+                                                                  jint width, jint height) {
+    const char *yuv = env->GetStringUTFChars(yuv_, 0);
+    const char *h264 = env->GetStringUTFChars(h264_, 0);
+
+    LOGD(TAG, "nativeEncode start... yuvPath: %s, h264Path: %s", yuv, h264);
+
+    FILE *in_file = fopen(yuv, "rb");
+    int frameNum = 100;//编码100帧
+
+    AVFormatContext *formatContext;
+    AVOutputFormat *outputFormat;
+    av_register_all();
+    formatContext = avformat_alloc_context();
+    outputFormat = av_guess_format(nullptr, h264, nullptr);
+    formatContext->oformat = outputFormat;
+
+    if (avio_open(&formatContext->pb, h264, AVIO_FLAG_READ_WRITE) < 0) {
+        LOGE(TAG, "avio_open failed.");
+        return FFMPEG_AVIO_OPEN_FAILED;
+    }
+
+    AVStream *video_st = nullptr;
+    video_st = avformat_new_stream(formatContext, 0);
+    if (video_st == nullptr) {
+        LOGE(TAG, "avformat_new_stream failed.");
+        return FFMPEG_NEW_STREAM_FAILED;
+    }
+    video_st->time_base.num = 1;//分子
+    video_st->time_base.den = 25;//分母
+
+    AVCodecContext *codecContext = nullptr;
+    codecContext = video_st->codec;
+    codecContext->codec_id = outputFormat->video_codec;
+    codecContext->codec_type = AVMEDIA_TYPE_VIDEO;
+    codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+    codecContext->width = width;
+    codecContext->height = height;
+    codecContext->time_base.num = 1;
+    codecContext->time_base.den = 25;
+    codecContext->bit_rate = bitrate;
+    codecContext->gop_size = 250;
+    codecContext->qmin = 10;//todo 了解qmin和qmax的作用
+    codecContext->qmax = 51;
+    codecContext->max_b_frames = 3;
+
+    AVDictionary *param = nullptr;
+    if (codecContext->codec_id == AV_CODEC_ID_H264) {
+        av_dict_set(&param, "preset", "slow", 0);
+        av_dict_set(&param, "tune", "zerolatency", 0);
+    }
+    if (codecContext->codec_id == AV_CODEC_ID_H265) {
+        av_dict_set(&param, "preset", "ultrafast", 0);
+        av_dict_set(&param, "tune", "zero-latency", 0);
+    }
+
+    av_dump_format(formatContext, 0, h264, 1);
+
+    AVCodec *codec = nullptr;
+    codec = avcodec_find_encoder(codecContext->codec_id);
+    if (!codec) {
+        LOGE(TAG, "avcodec_find_encoder failed.");
+        return FFMPEG_FIND_ENCODER_FAILED;
+    }
+    if (avcodec_open2(codecContext, codec, &param) < 0) {
+        LOGE(TAG, "avcodec_open2 failed.");
+        return FFMPEG_CODEC_OPEN_FAILED;
+    }
+
+    AVFrame *frame = nullptr;
+    int picture_size;
+    uint8_t *picture_buf;
+    frame = av_frame_alloc();
+    picture_size = avpicture_get_size(codecContext->pix_fmt, codecContext->width, codecContext->height);
+    picture_buf = static_cast<uint8_t *>(av_malloc(picture_size));
+    avpicture_fill((AVPicture *)frame, picture_buf, codecContext->pix_fmt, codecContext->width, codecContext->height);
+
+    avformat_write_header(formatContext, nullptr);
+
+    AVPacket packet;
+    av_new_packet(&packet, picture_size);
+    int y_size = codecContext->width * codecContext->height;
+
+    int frameCount = 0;
+
+    for (int i = 0; i < frameNum; ++i) {
+        //Read raw yuv data..
+        if (fread(picture_buf, 1, y_size * 3 / 2, in_file) <= 0) {
+            LOGE(TAG, "fread file failed.");
+            return FREAD_FAILED;
+        } else if (feof(in_file)) {
+            break;
+        }
+        frame->data[0] = picture_buf; //Y
+        frame->data[1] = picture_buf + y_size; //U
+        frame->data[2] = picture_buf + y_size * 5 / 4; //V
+
+        //calculate pts
+        frame->pts = i * (video_st->time_base.den) / ((video_st->time_base.num) * 25);
+        int got_picture = 0;
+
+        //encode..
+        int ret = avcodec_encode_video2(codecContext, &packet, frame, &got_picture);
+        if (ret < 0) {
+            LOGE(TAG, "failed to encode.");
+            return FFMPEG_ENCODE_VIDEO_FAILED;
+        }
+        if (got_picture == 1) {
+            LOGD(TAG, "encode frame success, frameCount: %5d", frameCount);
+            frameCount++;
+            packet.stream_index = video_st->index;
+            ret = av_write_frame(formatContext, &packet);//write packet to file.
+            av_free_packet(&packet);
+        }
+    }
+
+    //flush encode.. must do it
+    int ret = flush_encoder(formatContext, 0);
+    if (ret < 0) {
+        LOGE(TAG, "flush encoder failed.");
+        return FLUSH_ENCODER_FAILED;
+    }
+
+    av_write_trailer(formatContext);
+
+    if (video_st) {
+        avcodec_close(codecContext);
+        av_free(frame);
+        av_free(picture_buf);
+    }
+    avio_close(formatContext->pb);
+    avformat_free_context(formatContext);
+
+    env->ReleaseStringUTFChars(yuv_, yuv);
+    env->ReleaseStringUTFChars(h264_, h264);
+}
+//-----------------------------------------FFmpeg Encode-----------------------------------------//
 
 
+//-----------------------------------------XWXRecorder-----------------------------------------//
+static jmethodID onOpenGLCreateMethod = nullptr;
+static jmethodID onOpenGLRunningMethod = nullptr;
+static jmethodID onOpenGLDestroyedMethod = nullptr;
+static JavaVM *mJavaVM;
+static pthread_key_t mThreadKey;
+static void Android_JNI_ThreadDestroyed(void *value);
 
+#define TAG_RECORDER "XWXRecorder"
+
+static void Android_JNI_ThreadDestroyed(void *value) {
+    JNIEnv *env = (JNIEnv *) value;
+    if (env != NULL) {
+        mJavaVM->DetachCurrentThread();
+        pthread_setspecific(mThreadKey, NULL);
+    }
+}
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+    JNIEnv *env;
+    mJavaVM = vm;
+    if (mJavaVM->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {
+        LOGE(TAG_RECORDER,"Failed to get the environment using GetEnv()");
+        return -1;
+    }
+
+    if (pthread_key_create(&mThreadKey, Android_JNI_ThreadDestroyed) != JNI_OK) {
+        LOGE(TAG_RECORDER,"Error initializing pthread key");
+    }
+
+    return JNI_VERSION_1_4;
+}
+
+static JNIEnv *Android_JNI_GetEnv(void);
+
+static JNIEnv *Android_JNI_GetEnv(void) {
+    JNIEnv *env = nullptr;
+    int status = mJavaVM->GetEnv((void **) &env, JNI_VERSION_1_6);
+    if (status < 0) {
+        status = mJavaVM->AttachCurrentThread(&env, NULL);
+        if (status < 0) {
+            LOGE(TAG_RECORDER, "failed to attach current thread");
+            return 0;
+        }
+
+        pthread_setspecific(mThreadKey, (void *) env);
+    }
+    return env;
+}
+
+static void loadMethods(JNIEnv *env) {
+    jclass reocrderClass = env->FindClass("com/xiangweixin/myownstudy/mediaallproj/XWXRecorder");
+    if (reocrderClass == nullptr) {
+        LOGE(TAG_RECORDER, "find xwxrecorder class failed.");
+        return;
+    }
+    onOpenGLCreateMethod = env->GetMethodID(reocrderClass, "onGLCreated", "()I");
+    if (onOpenGLCreateMethod == nullptr) {
+        LOGE(TAG_RECORDER, "find onOpenGLCreateMethod failed.");
+        return;
+    }
+    onOpenGLRunningMethod = env->GetMethodID(reocrderClass, "onGLRunning", "()V");
+    if (onOpenGLRunningMethod == nullptr) {
+        LOGE(TAG_RECORDER, "find onOpenGLRunningMethod failed.");
+        return;
+    }
+    onOpenGLDestroyedMethod = env->GetMethodID(reocrderClass, "onGLDestroyed", "()V");
+    if (onOpenGLDestroyedMethod == nullptr) {
+        LOGE(TAG_RECORDER, "find onOpenGLDestroyedMethod failed.");
+        return;
+    }
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_xiangweixin_myownstudy_mediaallproj_XWXRecorder_nativeCreate(JNIEnv *env,
+                                                                      jobject instance) {
+    loadMethods(env);
+    RecorderOpenGLProxy *recorderOpenGLProxy = new RecorderOpenGLProxy;
+    jobject recorderObj = env->NewGlobalRef(instance);
+
+    recorderOpenGLProxy->setOnOpenGLCreateCallback([recorderOpenGLProxy](void *ptr) -> int {
+        RecorderEnv *pEnv = static_cast<RecorderEnv*>(ptr);
+        JNIEnv *env = Android_JNI_GetEnv();
+        if (env != nullptr && onOpenGLCreateMethod != nullptr) {
+            jint srcTexId = env->CallIntMethod(pEnv->mObj, onOpenGLCreateMethod);
+            recorderOpenGLProxy->srcTexId = srcTexId;//在这里拿到Java层创建的SurfaceTexture纹理ID
+        }
+    });
+
+    recorderOpenGLProxy->setOnOpenGLRunningCallback([] (void *ptr) {
+        RecorderEnv *pEnv = static_cast<RecorderEnv*>(ptr);
+        JNIEnv *env = Android_JNI_GetEnv();
+        if (env != nullptr && onOpenGLRunningMethod != nullptr) {
+            env->CallVoidMethod(pEnv->mObj, onOpenGLRunningMethod);
+        }
+    });
+
+    recorderOpenGLProxy->setOnOpenGLDestroyCallback([](void *ptr) {
+        RecorderEnv *pEnv = static_cast<RecorderEnv*>(ptr);
+        JNIEnv *env = Android_JNI_GetEnv();
+        if (env != nullptr && onOpenGLDestroyedMethod != nullptr) {
+            env->CallVoidMethod(pEnv->mObj, onOpenGLDestroyedMethod);
+        }
+    });
+
+    return reinterpret_cast<long>(recorderOpenGLProxy);
+
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_xiangweixin_myownstudy_mediaallproj_XWXRecorder_nativeInitOpenGL(JNIEnv *env,
+                                                                          jobject instance,
+                                                                          jlong handler,
+                                                                          jobject surface) {
+
+    RecorderOpenGLProxy *recorderOpenGLProxy = reinterpret_cast<RecorderOpenGLProxy *>(handler);
+    if (recorderOpenGLProxy == nullptr) {
+        return RECORDER_INVALID_HANDLER;
+    }
+    if (surface == nullptr) {
+        return RECORDER_INVALID_SURFACE;
+    }
+    ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
+    int ret = recorderOpenGLProxy->initEGL(window);
+    return 0;
+}
+//-----------------------------------------XWXRecorder-----------------------------------------//
