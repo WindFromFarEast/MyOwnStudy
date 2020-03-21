@@ -35,16 +35,16 @@ public class CameraDrawer {
             "}";
 
     private static final float[] vertexData = {
-            -1f, -1f,
-            1f, -1f,
-            -1, 1f,
-            1f, 1,
+            -1f, 1f,  // 左上
+            -1f, -1f, // 左下
+            1f, 1f,   // 右上
+            1f, -1f   // 右下
     };
     private static final float[] textureData = {
-            0f, 1f,
-            1f, 1f,
-            0f, 0f,
-            1f, 0f,
+            0f, 1f,   // 左上
+            0f, 0f,   // 左下
+            1f, 1f,   // 右上
+            1f, 0f    // 右下
     };
 
     private static final int COORDS_PER_TEX = 2;

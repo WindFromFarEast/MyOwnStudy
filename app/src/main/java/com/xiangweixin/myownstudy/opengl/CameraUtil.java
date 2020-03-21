@@ -73,9 +73,10 @@ public class CameraUtil {
 //        parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
 
         //懒得写了，直接默认auto focus mode.
-        if (supportFocusMode(Camera.Parameters.FOCUS_MODE_AUTO, parameters)) {
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-        }
+//        if (supportFocusMode(Camera.Parameters.FOCUS_MODE_AUTO, parameters)) {
+//            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+//        }
+        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         parameters.set("orientation", "potrait");
         mCamera.setDisplayOrientation(90);
         mCamera.setParameters(parameters);
