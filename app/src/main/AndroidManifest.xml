@@ -27,6 +27,7 @@
         <activity android:name=".ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity"/>
         <activity android:name=".UtilActivity"/>
         <activity android:name=".audiorecord.AudioRecordActivity"/>
+        <activity android:name=".opengl.OpenGLActivity"/>
     </application>
 
 </manifest>
