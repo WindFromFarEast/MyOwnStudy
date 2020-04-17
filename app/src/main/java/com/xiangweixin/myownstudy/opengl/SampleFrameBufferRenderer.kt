@@ -109,7 +109,7 @@ class SampleFrameBufferRenderer : GLSurfaceView.Renderer {
 
         // 绑定frame buffer
         // Bind the frame buffer
-        bindFrameBuffer(frameBuffer)
+        bindFrameBuffer(frameBuffer)  //imageTexture为输入纹理，FBO绑定的纹理就是输出纹理
 
         // 执行渲染，渲染效果为将图片的蓝色通道全部设为0.5
         // Perform rendering, and we can get the result of blue channel set to 0.5
