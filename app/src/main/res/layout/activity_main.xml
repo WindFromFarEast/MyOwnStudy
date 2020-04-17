@@ -53,4 +53,13 @@
         app:layout_constraintTop_toBottomOf="@+id/btn_toCamera1"
         android:text="OPENGL"/>
 
+    <Button
+        android:id="@+id/btn_toFBO"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="FBO"
+        app:layout_constraintStart_toEndOf="@+id/btn_toOpenGL"
+        app:layout_constraintTop_toBottomOf="@+id/btn_toOnlyPlayVideo" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

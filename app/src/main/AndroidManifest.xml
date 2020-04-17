@@ -28,6 +28,7 @@
         <activity android:name=".UtilActivity"/>
         <activity android:name=".audiorecord.AudioRecordActivity"/>
         <activity android:name=".opengl.OpenGLActivity"/>
+        <activity android:name=".opengl.GLSurfaceViewActivity"/>
     </application>
 
 </manifest>
