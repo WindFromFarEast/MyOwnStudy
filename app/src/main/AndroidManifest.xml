@@ -29,6 +29,8 @@
         <activity android:name=".audiorecord.AudioRecordActivity"/>
         <activity android:name=".opengl.OpenGLActivity"/>
         <activity android:name=".opengl.GLSurfaceViewActivity"/>
+        <activity android:name=".SecondCameraActivity"/>
+        <activity android:name=".FirstCameraActivity"/>
     </application>
 
 </manifest>

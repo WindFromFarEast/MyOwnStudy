@@ -80,6 +80,12 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, GLSurfaceViewActivity.class));
             }
         });
+        findViewById(R.id.btn_toFirstCamera).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, FirstCameraActivity.class));
+            }
+        });
     }
 
     private void requestAllPermission() {

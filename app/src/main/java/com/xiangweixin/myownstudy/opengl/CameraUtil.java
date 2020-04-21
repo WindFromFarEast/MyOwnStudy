@@ -2,6 +2,7 @@ package com.xiangweixin.myownstudy.opengl;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.util.Log;
 
 import com.xiangweixin.myownstudy.mediaallproj.XWXCameraSetting;
 import com.xiangweixin.myownstudy.mediaallproj.XWXResult;
@@ -45,6 +46,7 @@ public class CameraUtil {
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
+            LogUtil.e(TAG, Log.getStackTraceString(e));
         }
         LogUtil.e(TAG, "open camera failed. useBackCamera: " + useBackCamera + ", backCamId: " + mBackCamId + ", frontCamId: " + mFrontCamId);
         return XWXResult.NO_USABLE_CAMERA;
@@ -95,7 +97,9 @@ public class CameraUtil {
         if (mCamera != null) {
             try {
                 mCamera.setPreviewTexture(surfaceTexture);
+                long startTime = System.currentTimeMillis();
                 mCamera.startPreview();
+                LogUtil.i(TAG, "camera startPreview cost: " + (System.currentTimeMillis() - startTime) + " ms");
             } catch (IOException e) {
                 e.printStackTrace();
             }

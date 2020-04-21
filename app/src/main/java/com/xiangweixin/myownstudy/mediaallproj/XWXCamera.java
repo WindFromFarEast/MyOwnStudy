@@ -3,6 +3,8 @@ package com.xiangweixin.myownstudy.mediaallproj;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
+import android.util.Log;
+import android.view.SurfaceHolder;
 
 import androidx.annotation.RequiresApi;
 
@@ -38,15 +40,19 @@ public class XWXCamera {
             return XWXResult.NO_USABLE_CAMERA;
         }
         try {
+            long startTime = System.currentTimeMillis();
             if (useBackCamera && mBackCamId >= 0) {
                 mCamera = Camera.open(mBackCamId);
+                LogUtil.i(TAG, "camera open cost: " + (System.currentTimeMillis() - startTime) + " ms");
                 return XWXResult.OK;
             } else if (!useBackCamera && mFrontCamId >= 0) {
                 mCamera = Camera.open(mFrontCamId);
+                LogUtil.i(TAG, "camera open cost: " + (System.currentTimeMillis() - startTime) + " ms");
                 return XWXResult.OK;
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
+            LogUtil.e(TAG, Log.getStackTraceString(e));
         }
         LogUtil.e(TAG, "open camera failed. useBackCamera: " + useBackCamera + ", backCamId: " + mBackCamId + ", frontCamId: " + mFrontCamId);
         return XWXResult.NO_USABLE_CAMERA;
@@ -83,15 +89,46 @@ public class XWXCamera {
         return XWXResult.OK;
     }
 
+    public int onlyClose() {
+        if (mCamera != null) {
+            mCamera.stopPreview();
+        }
+        return XWXResult.OK;
+    }
+
     public void startPreview(SurfaceTexture surfaceTexture) {
         if (mCamera != null) {
             try {
                 mCamera.setPreviewTexture(surfaceTexture);
+                long startTime = System.currentTimeMillis();
                 mCamera.startPreview();
+                LogUtil.i(TAG, "camera startPreview cost: " + (System.currentTimeMillis() - startTime) + " ms");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void startPreview(SurfaceHolder holder) {
+        if (mCamera != null) {
+            try {
+                mCamera.setPreviewDisplay(holder);
+                long startTime = System.currentTimeMillis();
+                mCamera.startPreview();
+                LogUtil.i(TAG, "camera startPreview cost: " + (System.currentTimeMillis() - startTime) + " ms");
+            } catch (IOException e) {
+                e.printStackTrace();
+                LogUtil.e(TAG, Log.getStackTraceString(e));
+            }
+        }
+    }
+
+    public void lock() {
+        mCamera.lock();
+    }
+
+    public void unLock() {
+        mCamera.unlock();
     }
 
     private int prepare() {
