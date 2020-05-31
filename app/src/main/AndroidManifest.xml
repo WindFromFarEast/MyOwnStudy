@@ -32,6 +32,7 @@
         <activity android:name=".SecondCameraActivity"/>
         <activity android:name=".FirstCameraActivity"/>
         <activity android:name=".opengl.BlendActivity"/>
+        <activity android:name=".opengl.ImageActivity"/>
     </application>
 
 </manifest>
