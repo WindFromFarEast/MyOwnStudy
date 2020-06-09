@@ -16,6 +16,9 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 
+/**
+ * 用来显示一张图片，练习图片的缩放、裁剪、旋转、平移等
+ */
 public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
 
     private static final String TAG = ImageSurfaceViewRender.class.getSimpleName();
