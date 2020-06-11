@@ -65,7 +65,7 @@ public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         initData();
         createTexture();
-        int ret = bindImageToTexture(texID, "sdcard/720.jpg");
+        int ret = bindImageToTexture(texID, "sdcard/wallpaper.png");
         programID = createProgram(vertexShaderCode, fragmentShaderCode);
     }
 
@@ -79,22 +79,34 @@ public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        float inputAspectRatio = imageHeight * 1.0f / imageWidth;
+        float[] vsPos = {
+                -1f, -inputAspectRatio,
+                -1f, inputAspectRatio,
+                1f, inputAspectRatio,
+                -1f, -inputAspectRatio,
+                1f, inputAspectRatio,
+                1f, -inputAspectRatio
+        };
+        FloatBuffer vData = ByteBuffer.allocateDirect(vsPos.length * 4)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer()
+                .put(vsPos);
+        vData.position(0);
+
+        float[] orthoM = new float[16];
+        float aspectRatio = viewHeight * 1.0f / viewWitdh;
+        Matrix.setIdentityM(orthoM, 0);
+        Matrix.orthoM(orthoM, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
+
         float[] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
-        /**
-         * 需要注意缩放比例对应的不是原图宽高，而是相对于被glViewPort(w, h)强行采样为w * h的图像的比例
-         * CENTER_INSIDE
-         */
-        float imageRatio = imageWidth * 1.0f / imageHeight;
-        float viewRatio = viewWitdh * 1.0f / viewHeight;
-        if (imageRatio > viewRatio) {
-            float scaleH = imageHeight * viewWitdh * 1.0f / (viewHeight * imageWidth);
-            Matrix.scaleM(matrix, 0, 1f, scaleH, 1F);
-        } else {
-            float scaleW = imageWidth * viewHeight * 1.0f / (imageHeight * viewHeight);
-            Matrix.scaleM(matrix, 0, scaleW, 1F, 1F);
-        }
-        drawWithProgram(programID, vertexData, textureData, texID, matrix);
+        Matrix.rotateM(matrix, 0, 90f, 0, 0f, 1f);
+
+        float[] finalMatrix = new float[16];
+        Matrix.setIdentityM(finalMatrix, 0);
+        Matrix.multiplyMM(finalMatrix, 0, orthoM, 0, matrix, 0);
+        drawWithProgram(programID, vData, textureData, texID, finalMatrix);
     }
 
     private void initData() {
