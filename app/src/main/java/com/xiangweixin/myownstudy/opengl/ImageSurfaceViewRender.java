@@ -40,33 +40,41 @@ public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
             "}";
 
     private float[] vertexPosition = {
-            -1f, -1f,
             -1f, 1f,
-            1f, 1f,
             -1f, -1f,
             1f, 1f,
-            1f, -1f
+            1f, -1f,
     };
     private float[] texturePosition = {
-            0f, 1f, 0f, 0f, 1f, 0f, 0f, 1f, 1f, 0f, 1f, 1f
+            0f, 0f,
+            0f, 1f,
+            1f, 0f,
+            1f, 1f,
     };
     private FloatBuffer vertexData;
     private FloatBuffer textureData;
 
     private int texID = -1;
-    private int programID = -1;
+    private GLProgram mProgram = new GLProgram();
 
     private int imageWidth = 0;
     private int imageHeight = 0;
     private int viewWitdh = 0;
     private int viewHeight = 0;
 
+    private GPUCropper cropper = new GPUCropper();
+
+    private TextureManager mManager = TextureManager.getManager();
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         initData();
-        createTexture();
-        int ret = bindImageToTexture(texID, "sdcard/wallpaper.png");
-        programID = createProgram(vertexShaderCode, fragmentShaderCode);
+        Frame frame = BitmapUtils.decodeFile("sdcard/360p.jpg");
+        imageWidth = frame.getWidth();
+        imageHeight = frame.getHeight();
+        texID = mManager.createTexture(imageWidth, imageHeight, frame.getData());
+        mProgram.init(vertexShaderCode, fragmentShaderCode);
+        cropper.init();
     }
 
     @Override
@@ -79,122 +87,45 @@ public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        float inputAspectRatio = imageHeight * 1.0f / imageWidth;
-        float[] vsPos = {
-                -1f, -inputAspectRatio,
-                -1f, inputAspectRatio,
-                1f, inputAspectRatio,
-                -1f, -inputAspectRatio,
-                1f, inputAspectRatio,
-                1f, -inputAspectRatio
+//        float inputAspectRatio = imageHeight * 1.0f / imageWidth;
+//        float[] vsPos = {
+//                -1f, inputAspectRatio,
+//                -1f, -inputAspectRatio,
+//                1f, inputAspectRatio,
+//                1f, -inputAspectRatio
+//        };
+//        FloatBuffer vData = ByteBuffer.allocateDirect(vsPos.length * 4)
+//                .order(ByteOrder.nativeOrder())
+//                .asFloatBuffer()
+//                .put(vsPos);
+//        vData.position(0);
+        float[] textureCropPos = {
+                0.0f, 0.0f,
+                0.8f, 0.0f,
+                0.0f, 1.0f,
+                0.8f, 1.0f
         };
-        FloatBuffer vData = ByteBuffer.allocateDirect(vsPos.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(vsPos);
-        vData.position(0);
+        int[] cropSize = cropper.setCropPosition(textureCropPos, imageWidth, imageHeight);
+        int outTexture = mManager.createTexture(cropSize[0], cropSize[1], null);
+        cropper.crop(texID, outTexture);
 
-        float[] orthoM = new float[16];
-        float aspectRatio = viewHeight * 1.0f / viewWitdh;
-        Matrix.setIdentityM(orthoM, 0);
-        Matrix.orthoM(orthoM, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
-
-        float[] matrix = new float[16];
-        Matrix.setIdentityM(matrix, 0);
-        Matrix.rotateM(matrix, 0, 90f, 0, 0f, 1f);
-
-        float[] finalMatrix = new float[16];
-        Matrix.setIdentityM(finalMatrix, 0);
-        Matrix.multiplyMM(finalMatrix, 0, orthoM, 0, matrix, 0);
-        drawWithProgram(programID, vData, textureData, texID, finalMatrix);
+//        float[] orthoM = new float[16];
+//        float aspectRatio = viewHeight * 1.0f / viewWitdh;
+//        Matrix.setIdentityM(orthoM, 0);
+//        Matrix.orthoM(orthoM, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f);
+//
+//        float[] matrix = new float[16];
+//        Matrix.setIdentityM(matrix, 0);
+//
+//        float[] finalMatrix = new float[16];
+//        Matrix.setIdentityM(finalMatrix, 0);
+//        Matrix.multiplyMM(finalMatrix, 0, orthoM, 0, matrix, 0);
+//        drawWithProgram(mProgram.getProgramID(), vertexData, textureData, texID, finalMatrix);
     }
 
     private void initData() {
-        vertexData = ByteBuffer.allocateDirect(vertexPosition.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(vertexPosition);
-        vertexData.position(0);
-
-        textureData = ByteBuffer.allocateDirect(texturePosition.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(texturePosition);
-        textureData.position(0);
-    }
-
-    private void createTexture() {
-        int[] textures = new int[1];
-        GLES20.glGenTextures(1, textures, 0);
-        texID = textures[0];
-    }
-
-    private int bindImageToTexture(int textureID, String path) {
-        Bitmap bitmap = BitmapFactory.decodeFile(path);
-        ByteBuffer buffer = ByteBuffer.allocate(bitmap.getWidth() * bitmap.getHeight() * 4);
-        bitmap.copyPixelsToBuffer(buffer);
-        buffer.position(0);
-        imageWidth = bitmap.getWidth();
-        imageHeight = bitmap.getHeight();
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, bitmap.getWidth(), bitmap.getHeight(), 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
-
-        return 0;
-    }
-
-    private int createProgram(String vertex, String fragment) {
-        int vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
-        if (vertexShader > 0) {
-            GLES20.glShaderSource(vertexShader, vertex);
-            GLES20.glCompileShader(vertexShader);
-            int[] compile = new int[1];
-            GLES20.glGetShaderiv(vertexShader, GLES20.GL_COMPILE_STATUS, compile, 0);
-            if (compile[0] != GLES20.GL_TRUE) {
-                LogUtil.e(TAG, "Compile vertex shader failed.");
-                GLES20.glDeleteShader(vertexShader);
-                vertexShader = 0;
-                return -1;
-            }
-        }
-
-        int fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
-        if (fragmentShader > 0) {
-            GLES20.glShaderSource(fragmentShader, fragment);
-            GLES20.glCompileShader(fragmentShader);
-            int[] compile = new int[1];
-            GLES20.glGetShaderiv(fragmentShader, GLES20.GL_COMPILE_STATUS, compile, 0);
-            if (compile[0] != GLES20.GL_TRUE) {
-                LogUtil.e(TAG, "Compile fragment shader failed.");
-                GLES20.glDeleteShader(fragmentShader);
-                fragmentShader = 0;
-                return -1;
-            }
-        }
-
-        int program = GLES20.glCreateProgram();
-        if (program == 0) {
-            LogUtil.e(TAG, "Create program failed.");
-            return -1;
-        }
-        GLES20.glAttachShader(program, vertexShader);
-        GLES20.glAttachShader(program, fragmentShader);
-        GLES20.glLinkProgram(program);
-        int[] linkStatus = new int[1];
-        GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
-        if (linkStatus[0] != GLES20.GL_TRUE) {
-            LogUtil.e(TAG, "Link program failed.");
-            GLES20.glDeleteProgram(program);
-            program = 0;
-            return -1;
-        }
-
-        return program;
+        vertexData = BufferUtil.getFloatBuffer(vertexPosition);
+        textureData = BufferUtil.getFloatBuffer(texturePosition);
     }
 
     private void drawWithProgram(int programID, FloatBuffer vertexPos, FloatBuffer fragPos, int texture, float[] matrix) {
@@ -218,7 +149,9 @@ public class ImageSurfaceViewRender implements GLSurfaceView.Renderer {
         //draw.
         GLES20.glClearColor(0, 0, 0, 1);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        GLES20.glUseProgram(0);
     }
 
 }
