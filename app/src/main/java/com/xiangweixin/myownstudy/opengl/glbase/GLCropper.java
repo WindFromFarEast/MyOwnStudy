@@ -1,7 +1,10 @@
-package com.xiangweixin.myownstudy.opengl;
+package com.xiangweixin.myownstudy.opengl.glbase;
 
 import android.opengl.GLES20;
 
+import com.xiangweixin.myownstudy.opengl.BufferUtil;
+import com.xiangweixin.myownstudy.opengl.Frame;
+import com.xiangweixin.myownstudy.opengl.GLProgram;
 import com.xiangweixin.myownstudy.util.LogUtil;
 
 import java.io.FileNotFoundException;
@@ -10,14 +13,12 @@ import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
-import javax.microedition.khronos.opengles.GL;
-
 /**
  * 用于裁剪
  */
-public class GPUCropper {
+public class GLCropper {
 
-    private static final String TAG = GPUCropper.class.getSimpleName();
+    private static final String TAG = GLCropper.class.getSimpleName();
 
     private static final String VERTEX_CODE = "" +
             "        attribute highp vec2 vPosition;\n" +
@@ -62,7 +63,7 @@ public class GPUCropper {
             1.0f, 1.0f
     };
 
-    public GPUCropper() {
+    public GLCropper() {
 
     }
 

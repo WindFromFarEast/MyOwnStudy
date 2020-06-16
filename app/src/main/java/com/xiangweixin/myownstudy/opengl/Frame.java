@@ -4,33 +4,40 @@ import java.nio.ByteBuffer;
 
 public class Frame {
 
-    private ByteBuffer mData;
-    private int mWidth;
-    private int mHeight;
+    public interface FrameType {
+        int DEFAULT = 0;
+        int RGBA8 = 1;
+        int OPENGL_RGBA8 = 1 << 2;
+    }
+
+    private int type = FrameType.DEFAULT;
+    private ByteBuffer data;
+    private int width;
+    private int height;
     private int texture = -1;
 
     public ByteBuffer getData() {
-        return mData;
+        return data;
     }
 
     public void setData(ByteBuffer mData) {
-        this.mData = mData;
+        this.data = mData;
     }
 
     public int getWidth() {
-        return mWidth;
+        return width;
     }
 
     public void setWidth(int mWidth) {
-        this.mWidth = mWidth;
+        this.width = mWidth;
     }
 
     public int getHeight() {
-        return mHeight;
+        return height;
     }
 
     public void setHeight(int mHeight) {
-        this.mHeight = mHeight;
+        this.height = mHeight;
     }
 
     public int getTexture() {
