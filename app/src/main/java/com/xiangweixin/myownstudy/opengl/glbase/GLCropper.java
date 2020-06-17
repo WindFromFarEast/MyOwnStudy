@@ -77,6 +77,12 @@ public class GLCropper {
         positionLoc = GLES20.glGetAttribLocation(program.getProgramID(), "vPosition");
         texPositionLoc = GLES20.glGetAttribLocation(program.getProgramID(), "texCoordAttr");
         program.unuse();
+
+        if (fbo == -1) {
+            int[] fbos = new int[1];
+            GLES20.glGenFramebuffers(1, fbos, 0);
+            fbo = fbos[0];
+        }
         return 0;
     }
 
@@ -101,11 +107,6 @@ public class GLCropper {
 
     public Frame crop(int inTexture, int outTexture) {
         Frame frame = new Frame();
-        if (fbo == -1) {
-            int[] fbos = new int[1];
-            GLES20.glGenFramebuffers(1, fbos, 0);
-            fbo = fbos[0];
-        }
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo);
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, outTexture, 0);
 
