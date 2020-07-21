@@ -7,6 +7,7 @@ import android.os.Environment
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.xiangweixin.myownstudy.util.LogUtil
 import com.xiangweixin.myownstudy.util.logi
 import java.io.File
 import java.io.FileOutputStream
@@ -18,6 +19,10 @@ private const val TAG = "CameraHelper"
  * Camera1学习类
  */
 class CameraHelper(private val mActivity: Activity, private val mSurfaceView: SurfaceView) : Camera.PreviewCallback {
+
+    companion object {
+        const val TAG = "CameraHelper"
+    }
 
     private var mCamera: Camera? = null
     private lateinit var mParameters: Camera.Parameters
@@ -78,6 +83,68 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         }
     }
 
+    fun switchFlashMode(value: String) {
+        val supportFlashModes = mParameters.supportedFlashModes
+        var isSupport = false
+        for (mode in supportFlashModes) {
+            if (value.equals(mode)) {
+                isSupport = true
+                break
+            }
+        }
+        if (isSupport) {
+            mParameters.flashMode = value
+            mCamera?.parameters = mParameters
+            LogUtil.d(TAG, "Switch flash mode: $value")
+        } else {
+            LogUtil.e(TAG, "Don't support flash mode: $value")
+        }
+    }
+
+    fun switchFocusMode(value: String) {
+        val supportFocusModes = mParameters.supportedFocusModes
+        var isSupport = false
+        for (mode in supportFocusModes) {
+            if (value.equals(mode)) {
+                isSupport = true
+                break
+            }
+        }
+        if (isSupport) {
+            mParameters.focusMode = value
+            mCamera?.parameters = mParameters
+            if (value.equals(Camera.Parameters.FOCUS_MODE_AUTO) || value.equals(Camera.Parameters.FOCUS_MODE_MACRO)) {
+                mCamera?.autoFocus(object : Camera.AutoFocusCallback {
+                    override fun onAutoFocus(success: Boolean, camera: Camera?) {
+                        if (success) {
+                            LogUtil.d(TAG, "onAutoFocus success.");
+                        } else {
+                            LogUtil.e(TAG, "onAutoFocus error.");
+                        }
+                    }
+
+                })
+            }
+            LogUtil.d(TAG, "Switch focus mode: $value")
+        } else {
+            LogUtil.e(TAG, "Don't focus mode: $value")
+        }
+    }
+
+    fun focusAt() {
+        if (mParameters.focusMode != Camera.Parameters.FOCUS_MODE_AUTO
+                && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
+                && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) {
+            LogUtil.e(TAG, "Cannot focus at certain point in wrong focus mode: ${mParameters.focusMode}")
+            return
+        }
+        if (mParameters.maxNumFocusAreas <= 0) {
+            LogUtil.e(TAG, "Device doesn't support focus at certain point.")
+            return
+        }
+
+    }
+
     private fun savePic(data: ByteArray) {
         val picFile = File("${Environment.getExternalStorageDirectory()}/DCIM/myPicture.jpg")
 
@@ -123,11 +190,6 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         val bestPicSize = getCloselySize(mSurfaceView.width, mSurfaceView.height, mParameters.supportedPreviewSizes)
         bestPicSize?.let {
             mParameters.setPictureSize(bestPicSize.width, bestPicSize.height)
-        }
-
-        //对焦模式
-        if (isSupportFocus(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-            mParameters.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
         }
 
         camera.parameters = mParameters
@@ -180,21 +242,6 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         return finalSize
     }
 
-    /**
-     * 判断是否支持某个对焦模式
-     */
-    private fun isSupportFocus(focusMode: String): Boolean {
-        var ret = false
-        val focusModeList = mParameters.supportedFocusModes
-        for (mode in focusModeList) {
-            logi(TAG, "相机支持的对焦模式: $mode")
-            if (mode == focusMode) {
-                ret = true
-            }
-        }
-        return ret
-    }
-
     private fun setCameraDisplayOrientation(activity: Activity) {
         val info = Camera.CameraInfo()
         Camera.getCameraInfo(mCameraFacing, info)
@@ -223,6 +270,10 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
 
     override fun onPreviewFrame(data: ByteArray?, camera: Camera?) {
 
+    }
+
+    fun getParameters(): Camera.Parameters {
+        return mParameters
     }
 
 }

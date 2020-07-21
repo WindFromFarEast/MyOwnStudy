@@ -13,16 +13,34 @@
         android:id="@+id/btn_takePic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="拍照"
-        android:layout_gravity="bottom"
-        android:layout_marginLeft="100dp"/>
+        android:text="拍照" />
 
     <Button
         android:id="@+id/btn_exchange"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="切换"
-        android:layout_gravity="bottom"
+        android:layout_marginLeft="100dp"/>
+
+    <Button
+        android:id="@+id/btn_torch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="手电筒"
+        android:layout_marginLeft="200dp"/>
+
+    <Button
+        android:id="@+id/btn_reverse_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="倒计时"
         android:layout_marginLeft="300dp"/>
+
+    <Button
+        android:id="@+id/btn_focus_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="对焦模式"
+        android:layout_marginTop="50dp"/>
 
 </FrameLayout>
