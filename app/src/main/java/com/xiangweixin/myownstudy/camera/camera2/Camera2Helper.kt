@@ -182,7 +182,7 @@ class Camera2Helper(val mActivity: Activity, private val mTextureView: TextureVi
         it.close()
 
         //todo 保存照片
-        val imageFile = File("${Environment.getExternalStorageDirectory()}/DCIM/myPicture.jpg");
+        val imageFile = File("${Environment.getExternalStorageDirectory()}/DCIM/camera2.jpg")
         val fos = FileOutputStream(imageFile)
         fos.write(byteArray, 0, byteArray.size)
 

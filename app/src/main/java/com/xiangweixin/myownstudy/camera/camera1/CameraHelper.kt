@@ -28,7 +28,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
     private lateinit var mParameters: Camera.Parameters
     private var mSurfaceHolder: SurfaceHolder = mSurfaceView.holder
 
-    private var mCameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK //Camera方向
+    private var mCameraFacing = Camera.CameraInfo.CAMERA_FACING_FRONT//Camera方向
     private var mDisplayOrientation = 0 //预览旋转角度
 
     private var picWidth = 720
@@ -274,6 +274,34 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
 
     fun getParameters(): Camera.Parameters {
         return mParameters
+    }
+
+    fun upExposureCompensation() {
+        val minIndex = mParameters.minExposureCompensation
+        val maxIndex = mParameters.maxExposureCompensation
+        if (minIndex == 0 && maxIndex == 0) {
+            logi(TAG, "不支持曝光补偿")
+            return
+        }
+        val step = mParameters.exposureCompensationStep
+        logi(TAG, "min exposure compensation index: $minIndex, max: $maxIndex, step: $step, current value: ${mParameters.exposureCompensation}")
+        mParameters.exposureCompensation = if (mParameters.exposureCompensation < maxIndex) mParameters.exposureCompensation + 1 else mParameters.exposureCompensation
+        mCamera!!.parameters = mParameters
+    }
+
+    fun downExposureCompensation() {
+        val minIndex = mParameters.minExposureCompensation
+        val maxIndex = mParameters.maxExposureCompensation
+        if (minIndex == 0 && maxIndex == 0) {
+            logi(TAG, "不支持曝光补偿")
+            return
+        }
+        val step = mParameters.exposureCompensationStep
+        logi(TAG, "min exposure compensation index: $minIndex, max: $maxIndex, step: $step")
+        logi(TAG, "min exposure compensation index: $minIndex, max: $maxIndex, step: $step, current value: ${mParameters.exposureCompensation}")
+        mParameters.exposureCompensation = if (mParameters.exposureCompensation > minIndex) mParameters.exposureCompensation - 1 else mParameters.exposureCompensation
+        mCamera!!.parameters = mParameters
+        mParameters.autoExposureLock
     }
 
 }

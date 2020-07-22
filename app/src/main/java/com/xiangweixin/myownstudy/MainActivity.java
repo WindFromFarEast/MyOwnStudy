@@ -15,6 +15,7 @@ import android.widget.TextView;
 import com.xiangweixin.myownstudy.audiorecord.AudioRecordActivity;
 import com.xiangweixin.myownstudy.camera.camera1.Camera1Activity;
 import com.xiangweixin.myownstudy.camera.camera2.Camera2Activity;
+import com.xiangweixin.myownstudy.camera.camera2new.NewCamera2Activity;
 import com.xiangweixin.myownstudy.ffmpeg.onlyPlayVideo.OnlyPlayVideoActivity;
 import com.xiangweixin.myownstudy.opengl.BlendActivity;
 import com.xiangweixin.myownstudy.opengl.GLSurfaceViewActivity;
@@ -98,6 +99,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, ImageActivity.class));
+            }
+        });
+        findViewById(R.id.btn_toNewCamera2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, NewCamera2Activity.class));
             }
         });
     }

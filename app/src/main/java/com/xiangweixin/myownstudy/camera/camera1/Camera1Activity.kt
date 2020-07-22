@@ -69,6 +69,13 @@ class Camera1Activity : AppCompatActivity() {
             btn_focus_mode.text = mCameraHelper.getParameters().focusMode
         }
 
+        btn_upExposure.setOnClickListener {
+            mCameraHelper.upExposureCompensation()
+        }
+        btn_downExposure.setOnClickListener {
+            mCameraHelper.downExposureCompensation()
+        }
+
         surfaceView.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 LogUtil.d(TAG, "onTouch >>> (${event?.x}, ${event?.y})")
