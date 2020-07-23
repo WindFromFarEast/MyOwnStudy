@@ -1,7 +1,7 @@
 package com.xiangweixin.myownstudy.camera.camera2new;
 
-import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -13,21 +13,30 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Build;
-import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.xiangweixin.myownstudy.util.LogUtil;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 正常预览流程: new->setSurfaceTextureListener->init->open->startPreview
+ */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class Camera2 {
 
@@ -35,9 +44,13 @@ public class Camera2 {
 
     private CameraManager mCameraManager;
     private CameraDevice mCameraDevice;
+    private CameraCharacteristics mCharacteristics;
     private Context mContext;
     private Size mPreviewSize;
+    private Size mPictureSize;
     private String[] mCameraIDList;
+
+    private ImageReader mImageReader;
 
     private String mCurrentCameraID;
 
@@ -49,11 +62,15 @@ public class Camera2 {
 
     private SurfaceTexture mSurfaceTexture;
     private Surface mPreviewSurface;
+    private Surface mImageSurface;
 
     private CaptureRequest.Builder mCaptureRequestBuilder;
     private CameraCaptureSession mCaptureSession;
 
-    private ConditionVariable mCameraCondition = new ConditionVariable(false);
+    private PictureCallback mPictureCallback;
+
+    private OrientationEventListener mOrientationListener;
+    private AtomicInteger mCurrentOrientation = new AtomicInteger(0);
 
     private CameraDevice.StateCallback mOpenCameraStateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -139,8 +156,35 @@ public class Camera2 {
         }
     };
 
+    private ImageReader.OnImageAvailableListener mImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            Image image = reader.acquireNextImage();
+            if (image == null) {
+                LogUtil.formatE(TAG, "onImageAvailable >>> image is null.");
+                return;
+            }
+
+            ByteBuffer imageBuffer = image.getPlanes()[0].getBuffer();
+            byte[] imageBytes = new byte[imageBuffer.remaining()];
+            imageBuffer.get(imageBytes);
+            int width = image.getWidth();
+            int height = image.getHeight();
+
+            mPictureCallback.onSuccess(imageBytes, width, height);
+            image.close();
+        }
+    };
+
     public Camera2(Context context, TextureView textureView) {
         mContext = context;
+        mOrientationListener = new OrientationEventListener(mContext) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                LogUtil.d(TAG, "Device orientation changed, now is " + orientation);
+                mCurrentOrientation.getAndSet(orientation);
+            }
+        };
         mTextureView = textureView;
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
@@ -179,12 +223,18 @@ public class Camera2 {
         mCameraSurfaceTextureListener = listener;
     }
 
-    public int init(Size previewSize, boolean useFront) {
+    public int init(Size previewSize, Size pictureSize, boolean useFront) {
         mHandlerThread.start();
         mCameraHandler = new Handler(mHandlerThread.getLooper());
 
+        if (mOrientationListener.canDetectOrientation()) {
+            mOrientationListener.enable();
+        }
+
         mCameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
         mPreviewSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+        mPictureSize = new Size(pictureSize.getHeight(), pictureSize.getWidth());
+
         try {
             mCameraIDList = mCameraManager.getCameraIdList();
             if (!hasUsableCamera(mCameraIDList)) {
@@ -197,14 +247,16 @@ public class Camera2 {
                 boolean back = characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK;
                 if (useFront && front) {
                     mCurrentCameraID = id;
-                    if (!isSupportedCamera2AllFeatures(characteristics)) {
+                    mCharacteristics = characteristics;
+                    if (!isSupportedCamera2AllFeatures(mCharacteristics)) {
                         Log.e(TAG, "Don't support camera2 all features. Please use camera 1");
                         return -1;
                     }
                     break;
                 } else if (!useFront && back) {
                     mCurrentCameraID = id;
-                    if (!isSupportedCamera2AllFeatures(characteristics)) {
+                    mCharacteristics = characteristics;
+                    if (!isSupportedCamera2AllFeatures(mCharacteristics)) {
                         Log.e(TAG, "Don't support camera2 all features. Please use camera 1");
                         return -1;
                     }
@@ -231,12 +283,20 @@ public class Camera2 {
             mCameraDevice.close();
             mCameraDevice = null;
         }
+        if (mCaptureSession != null) {
+            try {
+                mCaptureSession.stopRepeating();
+                mCaptureSession.close();
+                mCaptureSession = null;
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void startPreview() {
         try {
-            CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(mCurrentCameraID);
-            StreamConfigurationMap streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            StreamConfigurationMap streamConfigurationMap = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             Size[] previewSizes = streamConfigurationMap.getOutputSizes(SurfaceTexture.class);
             Size bestPreviewSize = getBestPreviewSize(previewSizes, mPreviewSize);
             mSurfaceTexture.setDefaultBufferSize(bestPreviewSize.getWidth(), bestPreviewSize.getHeight());
@@ -245,9 +305,34 @@ public class Camera2 {
             mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mCaptureRequestBuilder.addTarget(mPreviewSurface);
 
+            Size[] pictureSizes = streamConfigurationMap.getOutputSizes(ImageReader.class);
+            Size bestSize = getBestPictureSize(pictureSizes, mPictureSize);
+            mImageReader = ImageReader.newInstance(bestSize.getWidth(), bestSize.getHeight(), ImageFormat.JPEG, 1);
+            mImageReader.setOnImageAvailableListener(mImageAvailableListener, mCameraHandler);
+            mImageSurface = mImageReader.getSurface();
+
             List<Surface> outputs = new ArrayList<>();
             outputs.add(mPreviewSurface);
+            outputs.add(mImageSurface);
             mCameraDevice.createCaptureSession(outputs, mCaptureStateCallback, mCameraHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * https://www.jianshu.com/p/2ae0a737c686
+     */
+    public void takePicture(final PictureCallback callback) {
+        mPictureCallback = callback;
+
+        try {
+            CaptureRequest.Builder imageRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            imageRequestBuilder.addTarget(mImageSurface);
+            imageRequestBuilder.addTarget(mPreviewSurface);
+            int orientation = getPictureOrientation();
+            imageRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, orientation);
+            mCaptureSession.capture(imageRequestBuilder.build(), mSessionCaptureCallback, mCameraHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -319,11 +404,64 @@ public class Camera2 {
         return bestSize;
     }
 
+    private Size getBestPictureSize(Size[] sizes, Size targetSize) {
+        Size bestSize = sizes[0];
+        float minDeltaRatio = Float.MAX_VALUE;
+        for (Size size : sizes) {
+            Log.i(TAG, "支持的拍照尺寸: (" + size.getWidth() + " x " + size.getHeight() + ")");
+            if (targetSize.equals(size)) {
+                bestSize = size;
+                break;
+            }
+            if (size.getHeight() > targetSize.getHeight() && size.getWidth() > targetSize.getWidth()) {
+                continue;
+            }
+            float targetRatio = targetSize.getWidth() * 1.0f / targetSize.getHeight();
+            float currentRatio = size.getWidth() * 1.0f / size.getHeight();
+            float deltaRatio = Math.abs(targetRatio - currentRatio);
+            if (deltaRatio < minDeltaRatio) {
+                minDeltaRatio = deltaRatio;
+                bestSize = size;
+            }
+        }
+
+        Log.i(TAG, "目标拍照尺寸: (" + targetSize.getWidth() + " x " + targetSize.getHeight() + ")");
+        Log.i(TAG, "最佳拍照尺寸: (" + bestSize.getWidth() + " x " + bestSize.getHeight() + ")");
+        return bestSize;
+    }
+
+    /**
+     * 预览的case下，Camera2已经自动为我们处理的旋转角度的问题。但是拍照case下没有，所以需要我们计算
+     */
+    private int getPictureOrientation() {
+        //设备方向
+        int deviceOrientation = mCurrentOrientation.getAndAdd(0);
+        if (deviceOrientation == OrientationEventListener.ORIENTATION_UNKNOWN) {
+            LogUtil.e(TAG, "Unknown orientation.");
+            return -1;
+        }
+        //传感器方向
+        Integer sensorOrientation = mCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+        deviceOrientation = (deviceOrientation + 45) / 90 * 90;
+
+        if (mCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+            deviceOrientation = -deviceOrientation;
+        }
+
+        return (sensorOrientation + deviceOrientation + 360) % 360;
+    }
+
     public interface Camera2SurfaceTextureListener {
         void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height);
         void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height);
         boolean onSurfaceTextureDestroyed(SurfaceTexture surface);
         void onSurfaceTextureUpdated(SurfaceTexture surface);
+    }
+
+    public interface PictureCallback {
+        void onSuccess(byte[] data, int width, int height);
+        void onFail(Exception e);
     }
 
 }

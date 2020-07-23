@@ -28,7 +28,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
     private lateinit var mParameters: Camera.Parameters
     private var mSurfaceHolder: SurfaceHolder = mSurfaceView.holder
 
-    private var mCameraFacing = Camera.CameraInfo.CAMERA_FACING_FRONT//Camera方向
+    private var mCameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK//Camera方向
     private var mDisplayOrientation = 0 //预览旋转角度
 
     private var picWidth = 720
@@ -246,6 +246,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         val info = Camera.CameraInfo()
         Camera.getCameraInfo(mCameraFacing, info)
 
+        //Display.rotation可以理解为显示方向,若开启了屏幕锁定旋转则恒为0,显示方向的理解:https://www.jianshu.com/p/067889611ae7.即设备相对坐标系y轴到显示自然方向(竖直)的顺时针旋转角度
         val rotation = activity.windowManager.defaultDisplay.rotation
 
         var screenDegree = when(rotation) {
@@ -256,6 +257,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
             else -> 0
         }
 
+        //info.orientation的理解:https://www.jianshu.com/p/7174754511df：手机自然竖直放置下，图像在自然显示方向正常显示需要顺时针旋转的角度，大部分手机后置为90
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             mDisplayOrientation = (info.orientation + screenDegree) % 360
             mDisplayOrientation = (360 - mDisplayOrientation) % 360          // compensate the mirror
