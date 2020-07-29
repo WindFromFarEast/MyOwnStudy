@@ -30,4 +30,19 @@
         android:text="拍照"
         app:layout_constraintStart_toEndOf="@+id/btn_open" />
 
+    <Button
+        android:id="@+id/btn_exposure_compensation_up"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="曝光补偿+"
+        app:layout_constraintStart_toEndOf="@+id/btn_capture" />
+
+    <Button
+        android:id="@+id/btn_exposure_compensation_down"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="曝光补偿-"
+        app:layout_constraintStart_toStartOf="@+id/textureView"
+        app:layout_constraintTop_toBottomOf="@+id/btn_close" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

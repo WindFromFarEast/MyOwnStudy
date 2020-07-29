@@ -77,8 +77,9 @@ class Camera1Activity : AppCompatActivity() {
         }
 
         surfaceView.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                LogUtil.d(TAG, "onTouch >>> (${event?.x}, ${event?.y})")
+            override fun onTouch(v: View?, event: MotionEvent): Boolean {
+                LogUtil.d(TAG, "onTouch >>> (${event.x}, ${event.y})")
+                mCameraHelper.focusAt(event.x.toInt(), event.y.toInt())
                 return true
             }
         })

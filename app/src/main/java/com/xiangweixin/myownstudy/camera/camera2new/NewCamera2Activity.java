@@ -86,6 +86,20 @@ public class NewCamera2Activity extends AppCompatActivity {
                 });
             }
         });
+
+        findViewById(R.id.btn_exposure_compensation_up).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCamera.upExposureCompensation();
+            }
+        });
+
+        findViewById(R.id.btn_exposure_compensation_down).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCamera.downExposureCompensation();
+            }
+        });
     }
 
     private void initCamera() {
@@ -95,7 +109,7 @@ public class NewCamera2Activity extends AppCompatActivity {
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
                 Size previewSize = new Size(width, height);
                 Size pictureSize = new Size(720, 1280);
-                mCamera.init(previewSize, pictureSize, false);
+                mCamera.init(previewSize, pictureSize, true);
                 mCamera.open();
                 mCamera.startPreview();
             }

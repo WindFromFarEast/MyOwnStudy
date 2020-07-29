@@ -8,6 +8,7 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
@@ -19,20 +20,26 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.util.Range;
+import android.util.Rational;
 import android.util.Size;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.xiangweixin.myownstudy.util.LogUtil;
 
+import java.awt.font.NumericShaper;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 
 /**
  * 正常预览流程: new->setSurfaceTextureListener->init->open->startPreview
@@ -338,6 +345,68 @@ public class Camera2 {
         }
     }
 
+    public void upExposureCompensation() {
+        Range<Integer> compensationRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+        if (compensationRange == null || compensationRange.equals(Range.create(0, 0))) {
+            return;
+        }
+        Rational compensationStep = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP);
+        if (compensationStep == null) {
+            return;
+        }
+        //例如，stepF为0.2，那么每提高1EV的话，需要五个steF，也就是CONTROL_AE_EXPOSURE_COMPENSATION需要传入5才能提高1，传入1就只提高0.2EV，-1就降低0.2EV
+        float stepF = compensationStep.getNumerator() * 1.0F / compensationStep.getDenominator();
+        int stepsPerEv = Math.round(1 / stepF);
+        int numSteps = (compensationRange.getUpper() - compensationRange.getLower()) / stepsPerEv;
+
+        Integer currentCompensation = mCaptureRequestBuilder.get(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION);
+        LogUtil.formatI(TAG, "Current exposure compensation: %d", currentCompensation.intValue());
+        if (currentCompensation.equals(compensationRange.getUpper())) {
+            return;
+        }
+
+        mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+        mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, currentCompensation + 1);
+
+        try {
+            mCaptureSession.setRepeatingRequest(mCaptureRequestBuilder.build(), mSessionCaptureCallback, mCameraHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        LogUtil.formatI(TAG, "stepF: %f, stepsPerEv: %d, maxEv: %d, minEv: %d, numSteps: %d", stepF, stepsPerEv,compensationRange.getUpper(), compensationRange.getLower(), numSteps);
+    }
+
+    public void downExposureCompensation() {
+        Range<Integer> compensationRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+        if (compensationRange == null || compensationRange.equals(Range.create(0, 0))) {
+            return;
+        }
+        Rational compensationStep = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP);
+        if (compensationStep == null) {
+            return;
+        }
+        //例如，stepF为0.2，那么每提高1EV的话，需要五个steF，也就是CONTROL_AE_EXPOSURE_COMPENSATION需要传入5才能提高1，传入1就只提高0.2EV，-1就降低0.2EV
+        float stepF = compensationStep.getNumerator() * 1.0F / compensationStep.getDenominator();
+        int stepsPerEv = Math.round(1 / stepF);
+        int numSteps = (compensationRange.getUpper() - compensationRange.getLower()) / stepsPerEv;
+
+        Integer currentCompensation = mCaptureRequestBuilder.get(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION);
+        LogUtil.formatI(TAG, "Current exposure compensation: %d", currentCompensation.intValue());
+        if (currentCompensation.equals(compensationRange.getLower())) {
+            return;
+        }
+
+        mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+        mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, currentCompensation - 1);
+
+        try {
+            mCaptureSession.setRepeatingRequest(mCaptureRequestBuilder.build(), mSessionCaptureCallback, mCameraHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        LogUtil.formatI(TAG, "stepF: %f, stepsPerEv: %d, maxEv: %d, minEv: %d, numSteps: %d", stepF, stepsPerEv,compensationRange.getUpper(), compensationRange.getLower(), numSteps);
+    }
+
     public void stopPreview() {
         try {
             mCaptureSession.stopRepeating();
@@ -454,13 +523,17 @@ public class Camera2 {
 
     public interface Camera2SurfaceTextureListener {
         void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height);
+
         void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height);
+
         boolean onSurfaceTextureDestroyed(SurfaceTexture surface);
+
         void onSurfaceTextureUpdated(SurfaceTexture surface);
     }
 
     public interface PictureCallback {
         void onSuccess(byte[] data, int width, int height);
+
         void onFail(Exception e);
     }
 

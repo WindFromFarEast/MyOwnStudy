@@ -2,11 +2,16 @@ package com.xiangweixin.myownstudy.camera.camera1
 
 import android.app.Activity
 import android.graphics.ImageFormat
+import android.graphics.Matrix
+import android.graphics.Rect
+import android.graphics.RectF
 import android.hardware.Camera
 import android.os.Environment
+import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.xiangweixin.myownstudy.camera.CameraCoordinateTransformer
 import com.xiangweixin.myownstudy.util.LogUtil
 import com.xiangweixin.myownstudy.util.logi
 import java.io.File
@@ -111,8 +116,10 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
             }
         }
         if (isSupport) {
+            mCamera?.cancelAutoFocus()
             mParameters.focusMode = value
             mCamera?.parameters = mParameters
+            //只有部分模式在设置了CameraParamter后还需要调用autoFocus来生效
             if (value.equals(Camera.Parameters.FOCUS_MODE_AUTO) || value.equals(Camera.Parameters.FOCUS_MODE_MACRO)) {
                 mCamera?.autoFocus(object : Camera.AutoFocusCallback {
                     override fun onAutoFocus(success: Boolean, camera: Camera?) {
@@ -131,7 +138,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         }
     }
 
-    fun focusAt() {
+    fun focusAt(x: Int, y: Int) {
         if (mParameters.focusMode != Camera.Parameters.FOCUS_MODE_AUTO
                 && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
                 && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) {
@@ -142,7 +149,20 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
             LogUtil.e(TAG, "Device doesn't support focus at certain point.")
             return
         }
+        LogUtil.i(TAG, "Max focus areas num: ${mParameters.maxNumFocusAreas}")
 
+
+        val focusArea = calculateFocusArea(x, y, mSurfaceView.width, mSurfaceView.height)
+        mCamera?.cancelAutoFocus()
+        mParameters.focusAreas = listOf(focusArea)
+        mParameters.focusMode = Camera.Parameters.FOCUS_MODE_AUTO
+        mCamera?.parameters = mParameters
+
+        mCamera?.autoFocus(object : Camera.AutoFocusCallback {
+            override fun onAutoFocus(success: Boolean, camera: Camera?) {
+                logi(TAG, "focus result: $success")
+            }
+        })
     }
 
     private fun savePic(data: ByteArray) {
@@ -304,6 +324,18 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         mParameters.exposureCompensation = if (mParameters.exposureCompensation > minIndex) mParameters.exposureCompensation - 1 else mParameters.exposureCompensation
         mCamera!!.parameters = mParameters
         mParameters.autoExposureLock
+    }
+
+    private fun calculateFocusArea(x: Int, y: Int, viewWidth: Int, viewHeight: Int, range: Int = 100): Camera.Area {
+        val cameraCoordinateTransformer = CameraCoordinateTransformer(mCameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT,
+                if (mCameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) 270 else 90, RectF(0F, 0F, viewWidth.toFloat(), viewHeight.toFloat()))
+        val touchRectF = RectF((x - range).toFloat(), (y + range).toFloat(), (x + range).toFloat(), (y - range).toFloat())
+        val cameraRectF = cameraCoordinateTransformer.toCameraSpace(touchRectF)
+        val cameraRect = Rect(Math.round(cameraRectF.left), Math.round(cameraRectF.top), Math.round(cameraRectF.right), Math.round(cameraRectF.bottom))
+
+        logi(TAG, "Before convert: (${touchRectF.left}, ${touchRectF.top}. ${touchRectF.right}. ${touchRectF.bottom})")
+        logi(TAG, "After convert: (${cameraRect.left}, ${cameraRect.top}. ${cameraRect.right}. ${cameraRect.bottom})")
+        return Camera.Area(cameraRect, 1000)
     }
 
 }
