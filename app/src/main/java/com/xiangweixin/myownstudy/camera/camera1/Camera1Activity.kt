@@ -8,6 +8,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.xiangweixin.myownstudy.R
 import com.xiangweixin.myownstudy.util.LogUtil
+import com.xiangweixin.myownstudy.util.toast
 import kotlinx.android.synthetic.main.activity_camera1.*
 
 class Camera1Activity : AppCompatActivity() {
@@ -21,6 +22,8 @@ class Camera1Activity : AppCompatActivity() {
     private var mTorchOn = false
     private var mSurfaceWidth = 0
     private var mSurfaceHeight = 0
+    private var mCurZoomIndex = 0
+    private var mFocusLock = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,13 +79,34 @@ class Camera1Activity : AppCompatActivity() {
             mCameraHelper.downExposureCompensation()
         }
 
+        btn_smooth_zoom_up.setOnClickListener {
+            mCurZoomIndex += 30
+            val maxZoom = mCameraHelper.getMaxZoomIndex()
+            toast("max zoom index: $maxZoom")
+            mCameraHelper.smoothZoom(mCurZoomIndex)
+        }
+
+        btn_smooth_zoom_down.setOnClickListener {
+            mCurZoomIndex -= 30
+            mCameraHelper.smoothZoom(mCurZoomIndex)
+        }
+
         surfaceView.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent): Boolean {
                 LogUtil.d(TAG, "onTouch >>> (${event.x}, ${event.y})")
-                mCameraHelper.focusAt(event.x.toInt(), event.y.toInt())
+                mCameraHelper.focusAt(event.x.toInt(), event.y.toInt(), mFocusLock)
                 return true
             }
         })
+
+        btn_focus_lock.setOnClickListener {
+            mFocusLock = !mFocusLock
+            if (mFocusLock) {
+                btn_focus_lock.setText("对焦锁定：开")
+            } else {
+                btn_focus_lock.setText("对焦锁定：关")
+            }
+        }
     }
 
 }

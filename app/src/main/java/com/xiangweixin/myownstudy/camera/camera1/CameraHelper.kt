@@ -1,19 +1,22 @@
 package com.xiangweixin.myownstudy.camera.camera1
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.graphics.ImageFormat
-import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.RectF
 import android.hardware.Camera
 import android.os.Environment
-import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import com.xiangweixin.myownstudy.camera.CameraCoordinateTransformer
 import com.xiangweixin.myownstudy.util.LogUtil
 import com.xiangweixin.myownstudy.util.logi
+import com.xiangweixin.myownstudy.util.toast
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.abs
@@ -65,9 +68,16 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         //判断手机是否支持前置/后置摄像头
         val supportCameraFacing = ifSupportCameraFacing(cameraFacing)
         if (supportCameraFacing) {
-            mCamera = Camera.open(cameraFacing)
-            initParameters(mCamera!!)
-            mCamera?.setPreviewCallback(this)
+            try {
+                mCamera = Camera.open(cameraFacing)
+                initParameters(mCamera!!)
+                mCamera?.setPreviewCallback(this)
+                val result = PermissionChecker.checkSelfPermission(mActivity, Manifest.permission.CAMERA) == PermissionChecker.PERMISSION_GRANTED
+                mActivity.toast("$result")
+            } catch (e: Exception) {
+                val result = PermissionChecker.checkSelfPermission(mActivity, Manifest.permission.CAMERA) == PermissionChecker.PERMISSION_GRANTED
+                mActivity.toast("exception: $result")
+            }
         }
     }
 
@@ -138,7 +148,7 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         }
     }
 
-    fun focusAt(x: Int, y: Int) {
+    fun focusAt(x: Int, y: Int, lock: Boolean = false) {
         if (mParameters.focusMode != Camera.Parameters.FOCUS_MODE_AUTO
                 && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
                 && mParameters.focusMode != Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) {
@@ -161,6 +171,29 @@ class CameraHelper(private val mActivity: Activity, private val mSurfaceView: Su
         mCamera?.autoFocus(object : Camera.AutoFocusCallback {
             override fun onAutoFocus(success: Boolean, camera: Camera?) {
                 logi(TAG, "focus result: $success")
+                if (!lock) {
+                    mParameters.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO
+                    mCamera?.parameters = mParameters
+                }
+            }
+        })
+    }
+
+    fun getMaxZoomIndex(): Int {
+        return mParameters.maxZoom
+    }
+
+    fun smoothZoom(index: Int) {
+        if (!mParameters.isSmoothZoomSupported) {
+            return
+        }
+        if (index > mParameters.maxZoom) {
+            return
+        }
+        mCamera?.startSmoothZoom(index)
+        mCamera?.setZoomChangeListener(object : Camera.OnZoomChangeListener {
+            override fun onZoomChange(zoomValue: Int, stopped: Boolean, camera: Camera?) {
+                logi(TAG, "zoomValue: $zoomValue, stopped: $stopped")
             }
         })
     }

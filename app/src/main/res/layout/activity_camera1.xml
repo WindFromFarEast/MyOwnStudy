@@ -59,4 +59,27 @@
         android:layout_marginTop="50dp"
         android:layout_marginLeft="200dp"/>
 
+    <Button
+        android:id="@+id/btn_smooth_zoom_up"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="顺滑变焦+30"
+        android:layout_marginTop="50dp"
+        android:layout_marginLeft="300dp"/>
+
+    <Button
+        android:id="@+id/btn_smooth_zoom_down"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="顺滑变焦-30"
+        android:layout_marginTop="100dp" />
+
+    <Button
+        android:id="@+id/btn_focus_lock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="对焦锁定：关"
+        android:layout_marginTop="100dp"
+        android:layout_marginLeft="100dp"/>
+
 </FrameLayout>
